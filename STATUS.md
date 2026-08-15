@@ -1,0 +1,34 @@
+# Project Status
+
+**Status:** SCOPING
+
+Allowed states:
+
+- IDEA
+- SCOPING
+- EVIDENCE COLLECTION
+- PIPELINE BUILD
+- BASELINE
+- ACTIVE TESTING
+- FALSIFICATION
+- REPLICATION
+- EXTERNAL VALIDATION
+- COMPLETE
+- FAILED
+- ARCHIVED
+
+## Current bottleneck
+
+REPLACE_ME
+
+## Next decisive action
+
+REPLACE_ME
+
+## Owner
+
+REPLACE_ME
+
+## Last updated
+
+REPLACE_ME
