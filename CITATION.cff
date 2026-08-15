@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: Bobby Research OS
+type: software
+message: "If you use this research template, please cite this repository."
+authors:
+  - family-names: Morong
+    given-names: Robert
+    alias: Bobby
+repository-code: https://github.com/GrobeStreet/bobby-research-os
+license: MIT
+version: 1.0.0
