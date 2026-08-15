@@ -1,0 +1,11 @@
+project:
+  status: SCOPING
+  ai_assisted: true
+  peer_reviewed: false
+
+assumptions:
+  - id: A001
+    statement: "REPLACE_ME"
+    rationale: "REPLACE_ME"
+    sensitivity_test: "REPLACE_ME"
+    status: active
