@@ -10,6 +10,7 @@ from pathlib import Path
 import openpyxl
 
 DATA_URL = 'https://pasteur.epa.gov/uploads/10.23719/1531811/GAC%20matrix%20impact%20paper%20data_ScID_D-pnwm.xlsx'
+DATA_SHA256 = '91d941d114f7df43578b9cf45c8fbb1d29caf5fa802401982afcd3588ab3bb5b'
 DATA_FILE = Path('data/raw/pfas_gac_matrix.xlsx')
 OUT_CSV = Path('outputs/exp001_baseline_summary.csv')
 OUT_JSON = Path('outputs/exp001_baseline_result.json')
@@ -27,7 +28,10 @@ def ensure_data() -> str:
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     if not DATA_FILE.exists():
         urllib.request.urlretrieve(DATA_URL, DATA_FILE)
-    return sha256(DATA_FILE)
+    digest = sha256(DATA_FILE)
+    if digest != DATA_SHA256:
+        raise RuntimeError(f'Dataset checksum mismatch: expected {DATA_SHA256}, got {digest}')
+    return digest
 
 
 def summarize_sheet(ws, condition_col: int, percent_col: int, pfas_col: int):
@@ -72,12 +76,6 @@ def summarize_sheet(ws, condition_col: int, percent_col: int, pfas_col: int):
 def main() -> int:
     digest = ensure_data()
     wb = openpyxl.load_workbook(DATA_FILE, read_only=True, data_only=True)
-    print('dataset_sha256=', digest)
-    print('sheets=', wb.sheetnames)
-    for name in wb.sheetnames:
-        ws = wb[name]
-        headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-        print(f'headers[{name}]=', headers)
 
     required = {'Fig 4', 'Fig S4'}
     missing = required - set(wb.sheetnames)
@@ -86,8 +84,6 @@ def main() -> int:
 
     fig4 = summarize_sheet(wb['Fig 4'], condition_col=1, percent_col=2, pfas_col=0)
     figs4 = summarize_sheet(wb['Fig S4'], condition_col=1, percent_col=3, pfas_col=0)
-    print('Fig 4 conditions=', list(fig4))
-    print('Fig S4 conditions=', list(figs4))
 
     expected_conditions = [
         '9PFAS, 10 mM NaHCO3',
