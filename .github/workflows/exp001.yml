@@ -9,6 +9,9 @@ on:
       - 'src/exp001_reproduce_baseline.py'
       - 'requirements-exp001.txt'
       - '.github/workflows/exp001.yml'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   reproduce:
