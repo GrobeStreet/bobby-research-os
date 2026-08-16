@@ -1,6 +1,6 @@
 # Project Status
 
-**Status:** SCOPING
+**Status:** BASELINE
 
 Allowed states:
 
@@ -19,16 +19,16 @@ Allowed states:
 
 ## Current bottleneck
 
-REPLACE_ME
+EXP-001 passed. The next bottleneck is converting the EPA workbook into a clean candidate-experiment table with explicit features for PFAS identity and water-matrix condition, without leaking held-out outcomes into experiment selection.
 
 ## Next decisive action
 
-REPLACE_ME
+Run **EXP-002**: establish random and naive experiment-acquisition learning curves on the fixed candidate table before testing any information-gain policy.
 
 ## Owner
 
-REPLACE_ME
+Robert "Bobby" Morong
 
 ## Last updated
 
-REPLACE_ME
+2026-08-15
