@@ -12,18 +12,7 @@
       "lsst_dia_object_id": [
         "170666303722881099"
       ],
-      "sha256_canonical_json": "bf6d88e788e93d43fa788200b685257a9b65f6580122e016a211bd76ca560485"
-    },
-    {
-      "alert_count": 398,
-      "alert_grav_wave_association_count": 2677,
-      "file": "antares_lsst_['170666303750144033'].json",
-      "locus_grav_wave_events": [],
-      "locus_id": "ANT2022j9elayd6h0l2",
-      "lsst_dia_object_id": [
-        "170666303750144033"
-      ],
-      "sha256_canonical_json": "9739824094a2541efba5555ecfd2bb372cdf282f44115b6fd8e02c9b624637b1"
+      "sha256_canonical_json": "0b0364f7df48c4af620db4e37544dffaf9a5d33354cbb20b7a06cc338e69cf0f"
     },
     {
       "alert_count": 114,
@@ -34,7 +23,18 @@
       "lsst_dia_object_id": [
         "170666303738085425"
       ],
-      "sha256_canonical_json": "a19e447af9f4156f0f4b3d132da52e6316c0cd72cf8d9ef4bcd9976663c9fff4"
+      "sha256_canonical_json": "59c171377c495fdd154b4d794f075cad432bb65b0a723a0e74850118e9c43bd0"
+    },
+    {
+      "alert_count": 398,
+      "alert_grav_wave_association_count": 2677,
+      "file": "antares_lsst_['170666303750144033'].json",
+      "locus_grav_wave_events": [],
+      "locus_id": "ANT2022j9elayd6h0l2",
+      "lsst_dia_object_id": [
+        "170666303750144033"
+      ],
+      "sha256_canonical_json": "de3bf7d4931c0b419682817341014b0963ec7e5254513c51f11d688205e88144"
     },
     {
       "alert_count": 19,
@@ -45,7 +45,7 @@
       "lsst_dia_object_id": [
         "170666303786319881"
       ],
-      "sha256_canonical_json": "098c8039da9dd9cec9c56c9f58c6d3ee2482a72877178c646c85ed1bad0ce289"
+      "sha256_canonical_json": "1f00dda322db49bec9fb4f52f7dacc1688d8c290f7288fa9d0e21cd43d2da7cc"
     },
     {
       "alert_count": 310,
@@ -56,9 +56,9 @@
       "lsst_dia_object_id": [
         "170666303763251238"
       ],
-      "sha256_canonical_json": "57f9ca93b74075d425e9603de52436fc4d097b72fe34e1e816cfee57927af2f2"
+      "sha256_canonical_json": "1c18d60ceb39df2b8f7cfa7a595754e69a2beee27314192588bdc156d34bbf37"
     }
   ],
-  "retrieved_at_utc": "2026-08-18T21:55:22.741688+00:00",
+  "retrieved_at_utc": "2026-08-18T21:55:54.839860+00:00",
   "source": "ANTARES public live database"
 }
