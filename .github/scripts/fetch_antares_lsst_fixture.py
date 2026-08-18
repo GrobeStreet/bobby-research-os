@@ -10,6 +10,7 @@ from typing import Any
 
 from antares_client import search
 
+# This script intentionally queries only the public ANTARES search API.
 DOCUMENTED_LSST_DIA_OBJECT_ID = "169342393603063964"
 OUT_DIR = Path("projects/trove-rubin-bridge/fixtures/real")
 MAX_LOCI = 5
