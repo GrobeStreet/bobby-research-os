@@ -55,14 +55,39 @@ def test_live_schema_nested_lsst_identity_is_unwrapped_to_scalar():
     assert target.observations[0].raw_properties["lsst_diaSource_diaObjectId"] == 170666303786319881
 
 
-def test_alert_level_gw_associations_are_preserved_when_present():
-    found = False
+def test_gw_provenance_is_preserved_for_rubin_alerts_without_cross_survey_leakage():
+    saw_cross_survey_gw = False
+
     for path in real_fixture_paths():
-        target = normalize_antares_locus(load_locus(path))
+        locus = load_locus(path)
+        raw_rubin = [
+            alert for alert in locus["alerts"]
+            if str(alert.get("alert_id", "")).startswith("lsst:")
+        ]
+        raw_non_rubin = [
+            alert for alert in locus["alerts"]
+            if not str(alert.get("alert_id", "")).startswith("lsst:")
+        ]
+        if any(alert.get("grav_wave_events") for alert in raw_non_rubin):
+            saw_cross_survey_gw = True
+
+        target = normalize_antares_locus(locus)
+        assert len(target.observations) == len(raw_rubin)
+
+        expected_ids = []
+        for alert in raw_rubin:
+            for event in alert.get("grav_wave_events") or []:
+                if event.get("gracedb_id") is not None:
+                    expected_ids.append(str(event["gracedb_id"]))
+
+        observed_ids = []
         for obs in target.observations:
-            if obs.grav_wave_events:
-                found = True
-                event = obs.grav_wave_events[0]
+            for event in obs.grav_wave_events:
                 assert set(event) == {"gracedb_id", "contour_level", "contour_area"}
-                assert event["gracedb_id"]
-    assert found, "Expected at least one frozen live Rubin alert with ANTARES GW association"
+                if event["gracedb_id"] is not None:
+                    observed_ids.append(str(event["gracedb_id"]))
+
+        assert observed_ids == expected_ids
+        assert set(target.grav_wave_events) == set(expected_ids)
+
+    assert saw_cross_survey_gw, "Expected real ANTARES loci to exercise cross-survey GW leakage protection"
