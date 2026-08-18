@@ -3,6 +3,7 @@ import os
 import sys
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -33,7 +34,6 @@ def all_real_targets():
 
 
 def replay_target():
-    # Choose the smallest normalized real fixture for the full replay assertion.
     return min(all_real_targets(), key=lambda target: len(target.observations))
 
 
@@ -43,8 +43,23 @@ def incremental_target():
     return min(candidates, key=lambda target: len(target.observations))
 
 
+@pytest.fixture
+def isolate_persistence_from_trove_science_hook():
+    """Exercise TROVE's real ORM/test DB without firing science before photometry exists.
+
+    TOM Toolkit BaseTarget.save() unconditionally calls target_post_save. A Rubin
+    handler that wants exactly-once vetting must therefore control that sequencing:
+    persist target, persist new photometry, then vet once if new evidence arrived.
+    These tests validate the persistence phase only.
+    """
+    with patch("tom_targets.base_models.run_hook") as hook:
+        yield hook
+
+
 @DB_MARK
-def test_real_rubin_fixture_persists_into_trove_models_and_replay_is_idempotent():
+def test_real_rubin_fixture_persists_into_trove_models_and_replay_is_idempotent(
+    isolate_persistence_from_trove_science_hook,
+):
     target = replay_target()
 
     first = ingest_into_trove(target)
@@ -71,10 +86,14 @@ def test_real_rubin_fixture_persists_into_trove_models_and_replay_is_idempotent(
 
     assert Target.objects.filter(name=target.trove_target_name).count() == 1
     assert ReducedDatum.objects.filter(target=db_target, data_type="photometry").count() == len(target.observations)
+    # Target save hook ran only for the first creation attempt, and it was isolated.
+    assert isolate_persistence_from_trove_science_hook.call_count == 1
 
 
 @DB_MARK
-def test_incremental_rubin_delivery_inserts_only_unseen_photometry_and_requests_revet():
+def test_incremental_rubin_delivery_inserts_only_unseen_photometry_and_requests_revet(
+    isolate_persistence_from_trove_science_hook,
+):
     target = incremental_target()
 
     partial = replace(
@@ -100,3 +119,5 @@ def test_incremental_rubin_delivery_inserts_only_unseen_photometry_and_requests_
 
     db_target = Target.objects.get(name=target.trove_target_name)
     assert ReducedDatum.objects.filter(target=db_target, data_type="photometry").count() == len(target.observations)
+    # Incremental redelivery never saves the existing target, so no duplicate target hook.
+    assert isolate_persistence_from_trove_science_hook.call_count == 1
