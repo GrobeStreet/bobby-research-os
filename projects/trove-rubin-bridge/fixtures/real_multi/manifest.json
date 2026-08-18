@@ -1,0 +1,14 @@
+{
+  "antares_client_version": "1.14.0",
+  "file": "antares_lsst_multi.json",
+  "locus_id": "ANT2021silgg",
+  "lsst_dia_object_id": [
+    "170604730330906635"
+  ],
+  "retrieved_at_utc": "2026-08-18T22:30:18.233902+00:00",
+  "rubin_alert_count": 2,
+  "scanned_loci": 13,
+  "sha256_canonical_json": "659ebcd273e6f2bc854b724e0281c1d0b18fce7d7b88b42e924ecb38b0c8983d",
+  "source": "ANTARES public live database",
+  "total_alert_count": 366
+}
