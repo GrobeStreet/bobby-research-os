@@ -4,10 +4,10 @@
   "apply_check_status": 0,
   "apply_status": 0,
   "django_check_status": 0,
-  "focused_test_status": 1,
-  "full_trove_test_status": 1,
+  "focused_test_status": 0,
+  "full_trove_test_status": 0,
   "trove_commit": "9f2309890b248d78fc470632c7ee5d9c8c4739b6",
-  "bridge_commit_before_results": "fca4faacae05986d8698b9a0bbdd565c4fc76f97",
+  "bridge_commit_before_results": "ab5e8d365dc83eab55459b8efa3bde4e208919e0",
   "tom_nonlocalizedevents_reproduction_pin": "d877e0281c6c826d753b19442a7452dbaafb00c5",
-  "patch_sha256": "9f7c6e110352b7f63eb41c2e6dcfdda131cde115f9e12d2098a7639c59726728"
+  "patch_sha256": "93995a08c9c93808f927b58261b075c395df65fb1f6f6dc7fb438486bba9eb29"
 }

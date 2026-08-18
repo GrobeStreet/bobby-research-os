@@ -45,7 +45,7 @@ index 25e0d04..8e11bfa 100644
      if created:
 diff --git a/custom_code/rubin_alerts.py b/custom_code/rubin_alerts.py
 new file mode 100644
-index 0000000..c4379f4
+index 0000000..d362ae1
 --- /dev/null
 +++ b/custom_code/rubin_alerts.py
 @@ -0,0 +1,279 @@
@@ -138,7 +138,7 @@ index 0000000..c4379f4
 +    # before storing it in TROVE. ANTARES' generic MJD is the fallback only.
 +    midpoint_mjd_tai = properties.get("lsst_diaSource_midpointMjdTai")
 +    if midpoint_mjd_tai is not None:
-+        return Time(float(midpoint_mjd_tai), format="mjd", scale="tai").to_datetime(
++        return Time(float(midpoint_mjd_tai), format="mjd", scale="tai").utc.to_datetime(
 +            timezone=timezone.utc
 +        )
 +
@@ -949,7 +949,7 @@ index 0000000..7b653d4
 +}
 diff --git a/tests/test_rubin_alertstream.py b/tests/test_rubin_alertstream.py
 new file mode 100644
-index 0000000..e77ea4e
+index 0000000..c3f5a8c
 --- /dev/null
 +++ b/tests/test_rubin_alertstream.py
 @@ -0,0 +1,139 @@
@@ -1090,7 +1090,7 @@ index 0000000..e77ea4e
 +        float(properties["lsst_diaSource_midpointMjdTai"]),
 +        format="mjd",
 +        scale="tai",
-+    ).to_datetime(timezone=stored.tzinfo)
++    ).utc.to_datetime(timezone=stored.tzinfo)
 +    assert stored == expected
 diff --git a/trove_tom/settings.py b/trove_tom/settings.py
 index 32d2cc2..0796341 100644
