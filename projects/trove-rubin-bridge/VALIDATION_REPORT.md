@@ -2,7 +2,7 @@
 
 ## Scope
 
-This report records the strongest result currently earned by the `trove-rubin-bridge` prototype. It validates the Rubin/ANTARES normalization boundary and persistence into TROVE's actual Django models/test databases. It does **not** claim production deployment, end-to-end live Kafka ingestion, or scientific-vetting validation.
+This report records the strongest result currently earned by the `trove-rubin-bridge` prototype. It validates the Rubin/ANTARES normalization boundary, persistence into TROVE's actual Django models/test databases, and the target/photometry/vetting sequencing contract. It does **not** claim production deployment, end-to-end live Kafka ingestion, distributed crash-proof exactly-once execution, or scientific-ranking validation.
 
 ## Frozen external data
 
@@ -58,18 +58,54 @@ For the real two-Rubin-alert locus `ANT2021silgg`:
 - replay A+B creates zero new observations and returns `should_revet = False`;
 - final ReducedDatum count equals the number of real Rubin alerts in the frozen locus.
 
-## Target-hook sequencing finding
+## Exactly-once vet sequencing validation
 
 TOM Toolkit `BaseTarget.save()` unconditionally invokes TROVE's configured `target_post_save` hook. Therefore a naive `Target.objects.create/get_or_create` path can fire TROVE science before Rubin photometry has been persisted.
 
-The database tests deliberately isolate that post-save science hook so they measure persistence/idempotency only. A production TROVE handler must explicitly solve sequencing so that the intended behavior is:
+The proposed sequence uses one instance-local defer marker on a newly created Rubin target:
 
-1. establish target identity;
-2. persist only unseen Rubin photometry;
-3. invoke the existing TROVE vetting path exactly once when genuinely new evidence arrived;
-4. do not invoke expensive re-vetting on broker redelivery.
+`_trove_defer_target_post_save = True`
 
-This is now a known integration requirement, not an assumption.
+and a minimal guard at the top of TROVE's `custom_code.hooks.target_post_save`:
+
+```python
+if getattr(target, "_trove_defer_target_post_save", False):
+    return [], None
+```
+
+This preserves TROVE's normal `Target.save()` behavior, including its derived target fields, while deferring science only for that target instance. After target identity exists, the bridge persists only unseen Rubin photometry and explicitly invokes TROVE's existing `target_post_save(target, created=True)` exactly once when new evidence was inserted.
+
+Five sequencing tests pass against current TROVE main and the actual Django test-database environment:
+
+1. a first real Rubin observation is persisted before the vet callback runs, and vetting is invoked exactly once;
+2. identical broker redelivery creates zero observations and invokes vetting zero times;
+3. real incremental delivery A -> A+B inserts only B and invokes vetting exactly once for that new batch, while replay A+B invokes zero vetting;
+4. the proposed instance-local guard causes TROVE's real `target_post_save` to return before `vet_basic` for the marked target;
+5. TROVE's actual `target_post_save` entrypoint is used as the vet callback with external/scientific dependencies isolated. Its `vet_basic` entrypoint observes Rubin photometry counts `[1, 2]` across the initial and incremental deliveries, proving the science entrypoint is reached only after the corresponding new evidence exists. Duplicate partial and full deliveries invoke zero vetting.
+
+The CI transcript records:
+
+```text
+=== install proposed instance-local defer guard ===
+guard installed
+=== run sequence tests ===
+.....                                                                    [100%]
+```
+
+Machine-readable sequencing result in `integration/sequence-ci-status.json`:
+
+- `install_status: 0`
+- `vet_sequence_test_status: 0`
+- TROVE commit: `9f2309890b248d78fc470632c7ee5d9c8c4739b6`
+- reproduction `tom-nonlocalizedevents` pin: `d877e0281c6c826d753b19442a7452dbaafb00c5`
+
+The full sequencing runner transcript is preserved in `integration/sequence-ci-output.txt`.
+
+### Exactness boundary
+
+The earned claim is exactly-once **vet invocation per successfully processed broker delivery containing genuinely new Rubin evidence**, with duplicate delivery suppressed by persisted alert identity.
+
+This is not a claim of distributed exactly-once execution across process crashes or non-transactional external side effects inside downstream scientific vetting. A production system that requires that stronger guarantee would need an outbox/task-state design or another durable post-commit execution protocol.
 
 ## Reproduction caveat: upstream dependency drift
 
@@ -81,27 +117,18 @@ For this reproduction only, `tom-nonlocalizedevents` was pinned to pre-migration
 
 This reproduces the dependency era compatible with TROVE main rather than silently upgrading TROVE. The CI also applies the same upstream migration no-op patches used by TROVE's own current CI workflow.
 
-## Machine-readable result
-
-`integration/ci-status.json` records:
-
-- `install_status: 0`
-- `fixture_test_status: 0`
-- `trove_db_test_status: 0`
-
-The full runner transcript is preserved in `integration/ci-output.txt`.
-
 ## Claims earned
 
 Supported:
 
-> The prototype normalizes frozen real ANTARES Rubin loci and persists Rubin photometry idempotently through TROVE's actual Django Target and ReducedDatum models in TROVE's test-database environment. Duplicate broker replay creates no duplicate data and does not request re-vetting; a real incremental Rubin update inserts only unseen photometry and does request re-vetting.
+> Against current TROVE main's actual Django model/test-database environment and frozen real ANTARES Rubin data, the proposed handler sequence persists new Rubin evidence before invoking TROVE vetting, invokes vetting exactly once for each successfully processed delivery containing genuinely new Rubin photometry, and invokes it zero times for duplicate broker redelivery. TROVE's actual `target_post_save` entrypoint was exercised with downstream external/scientific work isolated; its `vet_basic` entrypoint saw database counts of 1 then 2 after the initial and incremental real Rubin deliveries.
 
 Not yet supported:
 
 - live ANTARES Kafka/topic ingestion into a deployed TROVE instance;
 - production database behavior;
-- finalized target-hook sequencing implementation upstream;
+- distributed crash-proof exactly-once side-effect execution;
+- an upstream TROVE merge or maintainer acceptance;
 - latency/throughput performance;
 - scientific candidate-ranking performance;
 - maintainer acceptance of ANTARES as TROVE's intended Rubin production route.
