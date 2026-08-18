@@ -20,17 +20,32 @@ from tom_dataproducts.models import ReducedDatum  # noqa: E402
 from trove_targets.models import Target  # noqa: E402
 
 REAL_DIR = BRIDGE_ROOT / "fixtures" / "real"
-FIXTURE = REAL_DIR / "antares_lsst_['170666303786319881'].json"
+DB_MARK = pytest.mark.django_db(transaction=True, databases=["default", "catalogs"])
 
 
-def load_target():
-    payload = json.loads(FIXTURE.read_text())
-    return normalize_antares_locus(payload["locus"])
+def all_real_targets():
+    manifest = json.loads((REAL_DIR / "manifest.json").read_text())
+    targets = []
+    for item in manifest["fixtures"]:
+        payload = json.loads((REAL_DIR / item["file"]).read_text())
+        targets.append(normalize_antares_locus(payload["locus"]))
+    return targets
 
 
-@pytest.mark.django_db(transaction=True)
+def replay_target():
+    # Choose the smallest normalized real fixture for the full replay assertion.
+    return min(all_real_targets(), key=lambda target: len(target.observations))
+
+
+def incremental_target():
+    candidates = [target for target in all_real_targets() if len(target.observations) >= 2]
+    assert candidates, "Frozen real fixture set must contain a Rubin locus with >=2 Rubin alerts"
+    return min(candidates, key=lambda target: len(target.observations))
+
+
+@DB_MARK
 def test_real_rubin_fixture_persists_into_trove_models_and_replay_is_idempotent():
-    target = load_target()
+    target = replay_target()
 
     first = ingest_into_trove(target)
     assert first.target_created is True
@@ -58,10 +73,9 @@ def test_real_rubin_fixture_persists_into_trove_models_and_replay_is_idempotent(
     assert ReducedDatum.objects.filter(target=db_target, data_type="photometry").count() == len(target.observations)
 
 
-@pytest.mark.django_db(transaction=True)
+@DB_MARK
 def test_incremental_rubin_delivery_inserts_only_unseen_photometry_and_requests_revet():
-    target = load_target()
-    assert len(target.observations) >= 2
+    target = incremental_target()
 
     partial = replace(
         target,
