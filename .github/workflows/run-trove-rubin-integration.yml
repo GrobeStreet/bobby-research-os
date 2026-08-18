@@ -1,4 +1,4 @@
-# rerun: live-schema and Django initialization fixes
+# rerun: two-database and multi-alert fixture harness fixes
 name: TROVE Rubin integration validation
 
 on:
