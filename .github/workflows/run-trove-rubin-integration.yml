@@ -1,3 +1,4 @@
+# rerun: live-schema and Django initialization fixes
 name: TROVE Rubin integration validation
 
 on:
@@ -130,6 +131,7 @@ jobs:
           if [ "$INSTALL_STATUS" -eq 0 ]; then
             cd trove
             TROVE_RUBIN_BRIDGE_ROOT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge" \
+            DJANGO_SETTINGS_MODULE=trove_tom.settings \
             SKIP_DUSTMAP=1 \
             PYTHONPATH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/src:$GITHUB_WORKSPACE/trove" \
               python -m pytest "$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/test_trove_db.py" -q 2>&1 | tee -a "$OUT"
