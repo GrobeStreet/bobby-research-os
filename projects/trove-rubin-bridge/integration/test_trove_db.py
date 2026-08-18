@@ -8,6 +8,11 @@ import pytest
 
 BRIDGE_ROOT = Path(os.environ["TROVE_RUBIN_BRIDGE_ROOT"])
 sys.path.insert(0, str(BRIDGE_ROOT / "src"))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "trove_tom.settings")
+
+import django  # noqa: E402
+
+django.setup()
 
 from trove_rubin_bridge.adapter import normalize_antares_locus  # noqa: E402
 from trove_rubin_bridge.trove_native import ingest_into_trove  # noqa: E402
