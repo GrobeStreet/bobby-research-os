@@ -33,7 +33,7 @@ def load_multi_target():
 
 
 @DB_MARK
-def test_new_rubin_evidence_vets_once_after_photometry_exists(monkeypatch):
+def test_new_rubin_evidence_vets_once_after_photometry_exists():
     target = load_multi_target()
     partial = replace(
         target,
@@ -131,7 +131,6 @@ def test_real_trove_hook_guard_defers_only_marked_target(monkeypatch):
     from custom_code import hooks
 
     calls = []
-
     monkeypatch.setattr(hooks, "vet_basic", lambda *args, **kwargs: calls.append("vet_basic"))
     monkeypatch.setattr(hooks, "associate_nle_with_target", lambda *args, **kwargs: [])
 
@@ -144,9 +143,56 @@ def test_real_trove_hook_guard_defers_only_marked_target(monkeypatch):
     )
     setattr(target, DEFER_TARGET_POST_SAVE_ATTR, True)
 
-    # This test assumes the proposed guard is installed by the integration harness
-    # into TROVE's custom_code/hooks.py before pytest runs.
     messages, status = hooks.target_post_save(target, created=True)
     assert messages == []
     assert status is None
     assert calls == []
+
+
+@DB_MARK
+def test_actual_trove_vetting_entrypoint_runs_once_only_for_new_rubin_evidence(monkeypatch):
+    """Use TROVE's real target_post_save while isolating external/science dependencies."""
+    from custom_code import hooks
+
+    target = load_multi_target()
+    assert len(target.observations) == 2
+    partial = replace(
+        target,
+        observations=target.observations[:1],
+        first_seen_at=target.observations[0].observed_at,
+    )
+
+    basic_counts = []
+
+    def fake_vet_basic(target_id, **kwargs):
+        db_target = Target.objects.get(id=target_id)
+        basic_counts.append(
+            ReducedDatum.objects.filter(
+                target=db_target,
+                data_type="photometry",
+                source_name="Rubin/ANTARES",
+            ).count()
+        )
+
+    monkeypatch.setattr(hooks, "vet_basic", fake_vet_basic)
+    monkeypatch.setattr(hooks, "associate_nle_with_target", lambda *args, **kwargs: [])
+
+    def no_dust(*args, **kwargs):
+        raise RuntimeError("network disabled in sequencing test")
+
+    monkeypatch.setattr(hooks.IrsaDust, "get_query_table", no_dust)
+
+    first = ingest_then_vet(partial, vet_callable=hooks.target_post_save)
+    duplicate = ingest_then_vet(partial, vet_callable=hooks.target_post_save)
+    incremental = ingest_then_vet(target, vet_callable=hooks.target_post_save)
+    duplicate_full = ingest_then_vet(target, vet_callable=hooks.target_post_save)
+
+    assert [
+        first.vetting_invocations,
+        duplicate.vetting_invocations,
+        incremental.vetting_invocations,
+        duplicate_full.vetting_invocations,
+    ] == [1, 0, 1, 0]
+
+    # The real TROVE hook reaches vet_basic only after new Rubin photometry exists.
+    assert basic_counts == [1, 2]
