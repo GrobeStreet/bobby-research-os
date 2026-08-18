@@ -1,0 +1,156 @@
+name: Bootstrap TROVE Rubin sequencing proof
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bootstrap-trove-rubin-sequence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bridge staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: project/trove-rubin-bridge
+          path: bridge
+          fetch-depth: 0
+
+      - name: Checkout TROVE main
+        uses: actions/checkout@v4
+        with:
+          repository: astro-trove/trove
+          ref: main
+          path: trove
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run exactly-once vet sequencing proof
+        shell: bash
+        run: |
+          set +e
+          OUT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/sequence-ci-output.txt"
+          STATUS="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/sequence-ci-status.json"
+          : > "$OUT"
+          TROVE_SHA="$(git -C trove rev-parse HEAD)"
+          BRIDGE_SHA="$(git -C bridge rev-parse HEAD)"
+          TNLE_SHA="d877e0281c6c826d753b19442a7452dbaafb00c5"
+
+          echo '=== environment ===' | tee -a "$OUT"
+          python --version 2>&1 | tee -a "$OUT"
+          echo "trove_commit=$TROVE_SHA" | tee -a "$OUT"
+          echo "bridge_commit=$BRIDGE_SHA" | tee -a "$OUT"
+
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('trove/requirements.txt').read_text().splitlines()
+          pin = 'tom-nonlocalizedevents @ git+https://github.com/TOMToolkit/tom_nonlocalizedevents.git@d877e0281c6c826d753b19442a7452dbaafb00c5'
+          Path('/tmp/trove-repro-requirements.txt').write_text('\n'.join(pin if line.startswith('tom-nonlocalizedevents @') else line for line in src) + '\n')
+          PY
+
+          python -m pip install --upgrade pip wheel setuptools 2>&1 | tee -a "$OUT"
+          python -m pip install -r /tmp/trove-repro-requirements.txt pytest pytest-django 2>&1 | tee -a "$OUT"
+          INSTALL_STATUS=${PIPESTATUS[0]}
+
+          cat > trove/trove_tom/settings_local.py <<'EOF'
+          ALLOWED_HOST = 'localhost'
+          ATLAS_API_KEY = ''
+          DEBUG = True
+          FORCE_SCRIPT_NAME = ''
+          GCN_CLIENT_ID = ''
+          GCN_CLIENT_SECRET = ''
+          HOPSKOTCH_GROUP_ID = 'ci-test'
+          LASAIR_TOKEN = ''
+          POSTGRES_DB = ''
+          POSTGRES_HOST = ''
+          POSTGRES_PASSWORD = ''
+          POSTGRES_PORT = 5432
+          POSTGRES_USER = ''
+          POSTGRES_DB2 = ''
+          POSTGRES_HOST2 = ''
+          POSTGRES_PASSWORD2 = ''
+          POSTGRES_PORT2 = 5432
+          POSTGRES_USER2 = ''
+          SAVE_TEST_ALERTS = False
+          SCIMMA_AUTH_USERNAME = ''
+          SCIMMA_AUTH_PASSWORD = ''
+          SECRET_KEY = 'ci-test-secret-key-not-for-production'
+          NLE_LINKS = []
+          TARGET_LINKS = []
+          SLACK_TOKENS_GW = []
+          SLACK_TOKEN_EP = ''
+          SLACK_TOKEN_TNS = ''
+          TNS_API_KEY = ''
+          TREASUREMAP_API_KEY = ''
+          ZTF_INFO = {'email_server':'', 'email_password':'', 'email_address':'', 'user_address':'', 'user_password':''}
+          EOF
+
+          if [ "$INSTALL_STATUS" -eq 0 ]; then
+            echo '=== patch upstream migrations exactly as TROVE CI ===' | tee -a "$OUT"
+            python <<'PY' 2>&1 | tee -a "$OUT"
+          import os, site
+          patches = [
+              (('tom_targets','migrations','0025_auto_20250206_2017.py'), "from django.db import migrations\nclass Migration(migrations.Migration):\n    dependencies=[('tom_targets','0024_basetarget_permissions')]\n    operations=[]\n"),
+              (('tom_nonlocalizedevents','migrations','0016_externalcoincidence_alter_eventsequence_options_and_more.py'), "from django.db import migrations\nclass Migration(migrations.Migration):\n    dependencies=[('tom_nonlocalizedevents','0015_eventsequence_and_more')]\n    operations=[]\n"),
+              (('tom_nonlocalizedevents','migrations','0017_alter_eventsequence_external_coincidence_and_more.py'), "from django.db import migrations\nclass Migration(migrations.Migration):\n    dependencies=[('tom_nonlocalizedevents','0016_externalcoincidence_alter_eventsequence_options_and_more')]\n    operations=[]\n"),
+          ]
+          for parts, content in patches:
+              for sp in site.getsitepackages():
+                  path=os.path.join(sp,*parts)
+                  if os.path.exists(path):
+                      open(path,'w').write(content)
+                      print('patched', path)
+                      break
+          PY
+
+            echo '=== install proposed instance-local defer guard ===' | tee -a "$OUT"
+            python <<'PY' 2>&1 | tee -a "$OUT"
+          from pathlib import Path
+          path = Path('trove/custom_code/hooks.py')
+          text = path.read_text()
+          needle = '    logger.info("Target post save hook: %s created: %s", target, created)\n\n'
+          replacement = (
+              '    logger.info("Target post save hook: %s created: %s", target, created)\n\n'
+              '    if getattr(target, "_trove_defer_target_post_save", False):\n'
+              '        return [], None\n\n'
+          )
+          if needle not in text:
+              raise RuntimeError('target_post_save insertion point not found')
+          path.write_text(text.replace(needle, replacement, 1))
+          print('guard installed')
+          PY
+          fi
+
+          echo '=== run sequence tests ===' | tee -a "$OUT"
+          if [ "$INSTALL_STATUS" -eq 0 ]; then
+            cd trove
+            TROVE_RUBIN_BRIDGE_ROOT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge" DJANGO_SETTINGS_MODULE=trove_tom.settings SKIP_DUSTMAP=1 PYTHONPATH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/src:$GITHUB_WORKSPACE/trove" python -m pytest "$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/test_trove_sequence.py" -q 2>&1 | tee -a "$OUT"
+            SEQUENCE_STATUS=${PIPESTATUS[0]}
+            cd "$GITHUB_WORKSPACE"
+          else
+            SEQUENCE_STATUS=99
+          fi
+
+          cat > "$STATUS" <<EOF
+          {
+            "install_status": $INSTALL_STATUS,
+            "vet_sequence_test_status": $SEQUENCE_STATUS,
+            "trove_commit": "$TROVE_SHA",
+            "bridge_commit_before_results": "$BRIDGE_SHA",
+            "tom_nonlocalizedevents_reproduction_pin": "$TNLE_SHA"
+          }
+          EOF
+
+          git -C bridge config user.name 'github-actions[bot]'
+          git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C bridge add projects/trove-rubin-bridge/integration/sequence-ci-output.txt projects/trove-rubin-bridge/integration/sequence-ci-status.json
+          git -C bridge commit -m 'Record TROVE exactly-once vet sequencing proof' || true
+          git -C bridge push origin HEAD:project/trove-rubin-bridge
+
+          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$SEQUENCE_STATUS" -ne 0 ]; then exit 1; fi
