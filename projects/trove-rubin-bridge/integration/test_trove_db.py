@@ -21,16 +21,18 @@ from tom_dataproducts.models import ReducedDatum  # noqa: E402
 from trove_targets.models import Target  # noqa: E402
 
 REAL_DIR = BRIDGE_ROOT / "fixtures" / "real"
+REAL_MULTI_DIR = BRIDGE_ROOT / "fixtures" / "real_multi"
 DB_MARK = pytest.mark.django_db(transaction=True, databases=["default", "catalogs"])
+
+
+def load_target(path: Path):
+    payload = json.loads(path.read_text())
+    return normalize_antares_locus(payload["locus"])
 
 
 def all_real_targets():
     manifest = json.loads((REAL_DIR / "manifest.json").read_text())
-    targets = []
-    for item in manifest["fixtures"]:
-        payload = json.loads((REAL_DIR / item["file"]).read_text())
-        targets.append(normalize_antares_locus(payload["locus"]))
-    return targets
+    return [load_target(REAL_DIR / item["file"]) for item in manifest["fixtures"]]
 
 
 def replay_target():
@@ -38,9 +40,11 @@ def replay_target():
 
 
 def incremental_target():
-    candidates = [target for target in all_real_targets() if len(target.observations) >= 2]
-    assert candidates, "Frozen real fixture set must contain a Rubin locus with >=2 Rubin alerts"
-    return min(candidates, key=lambda target: len(target.observations))
+    manifest = json.loads((REAL_MULTI_DIR / "manifest.json").read_text())
+    target = load_target(REAL_MULTI_DIR / manifest["file"])
+    assert manifest["rubin_alert_count"] >= 2
+    assert len(target.observations) == manifest["rubin_alert_count"]
+    return target
 
 
 @pytest.fixture
@@ -86,7 +90,6 @@ def test_real_rubin_fixture_persists_into_trove_models_and_replay_is_idempotent(
 
     assert Target.objects.filter(name=target.trove_target_name).count() == 1
     assert ReducedDatum.objects.filter(target=db_target, data_type="photometry").count() == len(target.observations)
-    # Target save hook ran only for the first creation attempt, and it was isolated.
     assert isolate_persistence_from_trove_science_hook.call_count == 1
 
 
@@ -119,5 +122,4 @@ def test_incremental_rubin_delivery_inserts_only_unseen_photometry_and_requests_
 
     db_target = Target.objects.get(name=target.trove_target_name)
     assert ReducedDatum.objects.filter(target=db_target, data_type="photometry").count() == len(target.observations)
-    # Incremental redelivery never saves the existing target, so no duplicate target hook.
     assert isolate_persistence_from_trove_science_hook.call_count == 1
