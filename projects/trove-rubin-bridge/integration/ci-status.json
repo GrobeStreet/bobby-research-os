@@ -1,7 +1,8 @@
 {
-  "install_status": 1,
+  "install_status": 0,
   "fixture_test_status": 1,
-  "trove_db_test_status": 1,
+  "trove_db_test_status": 2,
   "trove_commit": "9f2309890b248d78fc470632c7ee5d9c8c4739b6",
-  "bridge_commit_before_results": "03097b7cc6df83d8088b3b270b919233d33ddf1d"
+  "bridge_commit_before_results": "d0ae0c13d93d0cc0dbf708978a5908f12fbfbe47",
+  "tom_nonlocalizedevents_reproduction_pin": "d877e0281c6c826d753b19442a7452dbaafb00c5"
 }
