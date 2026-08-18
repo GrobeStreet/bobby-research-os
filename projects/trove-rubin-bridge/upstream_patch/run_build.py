@@ -20,6 +20,17 @@ builder.TEST_MODULE = builder.TEST_MODULE.replace(
     '    monkeypatch.setattr(rubin_alerts, "target_post_save", fake_target_post_save)',
 )
 
+# Astropy requires conversion to UTC scale before producing a timezone-aware
+# datetime from Rubin's midpointMjdTai. Enforce the same conversion in the test.
+builder.RUBIN_MODULE = builder.RUBIN_MODULE.replace(
+    'return Time(float(midpoint_mjd_tai), format="mjd", scale="tai").to_datetime(',
+    'return Time(float(midpoint_mjd_tai), format="mjd", scale="tai").utc.to_datetime(',
+)
+builder.TEST_MODULE = builder.TEST_MODULE.replace(
+    '    ).to_datetime(timezone=stored.tzinfo)\n',
+    '    ).utc.to_datetime(timezone=stored.tzinfo)\n',
+)
+
 builder.modify_trove()
 
 # `git diff` omits untracked files. Mark normal new source/test files as
