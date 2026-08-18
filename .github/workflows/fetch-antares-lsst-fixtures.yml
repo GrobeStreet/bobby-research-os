@@ -7,6 +7,12 @@ on:
     paths:
       - '.github/scripts/fetch_antares_lsst_fixture.py'
       - '.github/workflows/fetch-antares-lsst-fixtures.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/scripts/fetch_antares_lsst_fixture.py'
+      - '.github/workflows/fetch-antares-lsst-fixtures.yml'
 
 permissions:
   contents: write
@@ -30,6 +36,7 @@ jobs:
         run: python .github/scripts/fetch_antares_lsst_fixture.py
 
       - name: Commit retrieved fixtures
+        if: github.event_name == 'push'
         run: |
           if git diff --quiet -- projects/trove-rubin-bridge/fixtures/real; then
             echo 'No fixture changes to commit.'
