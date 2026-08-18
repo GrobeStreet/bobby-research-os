@@ -9,6 +9,7 @@ on:
       - 'projects/trove-rubin-bridge/src/**'
       - 'projects/trove-rubin-bridge/tests/**'
       - 'projects/trove-rubin-bridge/integration/test_trove_db.py'
+      - 'projects/trove-rubin-bridge/integration/test_trove_sequence.py'
 
 permissions:
   contents: write
@@ -35,7 +36,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Validate real fixtures and actual TROVE Django databases
+      - name: Validate real fixtures, TROVE DB persistence, and vet sequencing
         shell: bash
         run: |
           set +e
@@ -97,6 +98,7 @@ jobs:
           EOF
 
           if [ "$INSTALL_STATUS" -eq 0 ]; then
+            echo '=== patch upstream migrations exactly as TROVE CI ===' | tee -a "$OUT"
             python <<'PY' 2>&1 | tee -a "$OUT"
           import os, site
           patches = [
@@ -112,8 +114,27 @@ jobs:
                       print('patched', path)
                       break
           PY
+
+            echo '=== install proposed TROVE target-post-save defer guard ===' | tee -a "$OUT"
+            python <<'PY' 2>&1 | tee -a "$OUT"
+          from pathlib import Path
+          path = Path('trove/custom_code/hooks.py')
+          text = path.read_text()
+          needle = '    logger.info("Target post save hook: %s created: %s", target, created)\n\n'
+          guard = (
+              '    logger.info("Target post save hook: %s created: %s", target, created)\n\n'
+              '    # Rubin broker ingestion must persist photometry before science runs.\n'
+              '    if getattr(target, "_trove_defer_target_post_save", False):\n'
+              '        return [], None\n\n'
+          )
+          if needle not in text:
+              raise RuntimeError('Could not locate target_post_save insertion point')
+          path.write_text(text.replace(needle, guard, 1))
+          print('installed instance-local defer guard in custom_code/hooks.py')
+          PY
           fi
 
+          echo '=== frozen live fixture adapter tests ===' | tee -a "$OUT"
           if [ "$INSTALL_STATUS" -eq 0 ]; then
             PYTHONPATH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/src" python -m pytest bridge/projects/trove-rubin-bridge/tests/test_real_fixtures.py -q 2>&1 | tee -a "$OUT"
             FIXTURE_STATUS=${PIPESTATUS[0]}
@@ -121,6 +142,7 @@ jobs:
             FIXTURE_STATUS=99
           fi
 
+          echo '=== TROVE actual Django persistence tests ===' | tee -a "$OUT"
           if [ "$INSTALL_STATUS" -eq 0 ]; then
             cd trove
             TROVE_RUBIN_BRIDGE_ROOT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge" DJANGO_SETTINGS_MODULE=trove_tom.settings SKIP_DUSTMAP=1 PYTHONPATH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/src:$GITHUB_WORKSPACE/trove" python -m pytest "$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/test_trove_db.py" -q 2>&1 | tee -a "$OUT"
@@ -130,11 +152,22 @@ jobs:
             DB_STATUS=99
           fi
 
+          echo '=== TROVE exactly-once vet sequencing tests ===' | tee -a "$OUT"
+          if [ "$INSTALL_STATUS" -eq 0 ]; then
+            cd trove
+            TROVE_RUBIN_BRIDGE_ROOT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge" DJANGO_SETTINGS_MODULE=trove_tom.settings SKIP_DUSTMAP=1 PYTHONPATH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/src:$GITHUB_WORKSPACE/trove" python -m pytest "$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/test_trove_sequence.py" -q 2>&1 | tee -a "$OUT"
+            SEQUENCE_STATUS=${PIPESTATUS[0]}
+            cd "$GITHUB_WORKSPACE"
+          else
+            SEQUENCE_STATUS=99
+          fi
+
           cat > "$STATUS" <<EOF
           {
             "install_status": $INSTALL_STATUS,
             "fixture_test_status": $FIXTURE_STATUS,
             "trove_db_test_status": $DB_STATUS,
+            "vet_sequence_test_status": $SEQUENCE_STATUS,
             "trove_commit": "$TROVE_SHA",
             "bridge_commit_before_results": "$BRIDGE_SHA",
             "tom_nonlocalizedevents_reproduction_pin": "$TNLE_SHA"
@@ -144,7 +177,7 @@ jobs:
           git -C bridge config user.name 'github-actions[bot]'
           git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git -C bridge add projects/trove-rubin-bridge/integration/ci-output.txt projects/trove-rubin-bridge/integration/ci-status.json
-          git -C bridge commit -m 'Record TROVE database integration validation' || true
+          git -C bridge commit -m 'Record TROVE vet sequencing validation' || true
           git -C bridge push origin HEAD:project/trove-rubin-bridge
 
-          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$FIXTURE_STATUS" -ne 0 ] || [ "$DB_STATUS" -ne 0 ]; then exit 1; fi
+          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$FIXTURE_STATUS" -ne 0 ] || [ "$DB_STATUS" -ne 0 ] || [ "$SEQUENCE_STATUS" -ne 0 ]; then exit 1; fi
