@@ -20,6 +20,7 @@ class Observation:
     magnitude_error: float | None = None
     limiting_magnitude: float | None = None
     survey: str = "LSST"
+    grav_wave_events: list[dict[str, Any]] = field(default_factory=list, compare=False)
     raw_properties: dict[str, Any] = field(default_factory=dict, compare=False)
 
     def __post_init__(self) -> None:
@@ -36,6 +37,15 @@ class Observation:
             self.magnitude,
             self.limiting_magnitude,
         )
+
+    @property
+    def gracedb_ids(self) -> list[str]:
+        ids = []
+        for event in self.grav_wave_events:
+            event_id = event.get("gracedb_id")
+            if event_id is not None:
+                ids.append(str(event_id))
+        return ids
 
 
 @dataclass
@@ -57,6 +67,12 @@ class BrokerTarget:
     @property
     def idempotency_key(self) -> str:
         return f"ANTARES:{self.locus_id}"
+
+    @property
+    def trove_target_name(self) -> str:
+        if self.lsst_dia_object_id:
+            return f"LSST{self.lsst_dia_object_id}"
+        return self.locus_id
 
     def observations_as_of(self, as_of: datetime) -> list[Observation]:
         cutoff = as_utc(as_of)
