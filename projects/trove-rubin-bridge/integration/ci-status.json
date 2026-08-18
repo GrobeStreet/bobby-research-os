@@ -2,7 +2,8 @@
   "install_status": 0,
   "fixture_test_status": 0,
   "trove_db_test_status": 0,
+  "vet_sequence_test_status": 0,
   "trove_commit": "9f2309890b248d78fc470632c7ee5d9c8c4739b6",
-  "bridge_commit_before_results": "331674ff8d008fd6e5a6082bec8b7e03dd2d93e9",
+  "bridge_commit_before_results": "2653b79dd541922b9ed1ded3b95aae0c05aef6fd",
   "tom_nonlocalizedevents_reproduction_pin": "d877e0281c6c826d753b19442a7452dbaafb00c5"
 }
