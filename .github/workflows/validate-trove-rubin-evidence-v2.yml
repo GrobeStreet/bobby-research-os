@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Build and validate exact evidence patch
+      - name: Build and validate exact hardened evidence patch
         shell: bash
         run: |
           set +e
@@ -114,9 +114,9 @@ jobs:
           PY
           fi
 
-          echo '=== build exact v2 patch ===' | tee -a "$OUT"
+          echo '=== build exact hardened v2 patch ===' | tee -a "$OUT"
           if [ "$INSTALL_STATUS" -eq 0 ]; then
-            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" python "$OUTDIR/build_evidence_patch.py" 2>&1 | tee -a "$OUT"
+            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" PYTHONPATH="$OUTDIR" python "$OUTDIR/run_build.py" 2>&1 | tee -a "$OUT"
             BUILD_STATUS=${PIPESTATUS[0]}
           else
             BUILD_STATUS=99
@@ -125,6 +125,7 @@ jobs:
           if [ "$BUILD_STATUS" -eq 0 ]; then
             echo '=== frozen changed files ===' | tee -a "$OUT"
             cat "$OUTDIR/changed-files.txt" | tee -a "$OUT"
+            echo '=== reset pristine TROVE and apply-check frozen patch ===' | tee -a "$OUT"
             git -C trove reset --hard HEAD 2>&1 | tee -a "$OUT"
             git -C trove clean -fd 2>&1 | tee -a "$OUT"
             git -C trove apply --check "$PATCH" 2>&1 | tee -a "$OUT"
@@ -148,9 +149,12 @@ jobs:
             CHECK_STATUS=99
           fi
 
+          # TROVE main already has unrelated migration drift in scoring and the pinned
+          # reproduction dependency. Record whether *custom_code* itself is clean rather
+          # than treating unrelated upstream drift as a Rubin patch failure.
           if [ "$APPLY_STATUS" -eq 0 ]; then
-            echo '=== migration consistency ===' | tee -a "$OUT"
-            (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python manage.py makemigrations --check --dry-run) 2>&1 | tee -a "$OUT"
+            echo '=== custom_code migration consistency ===' | tee -a "$OUT"
+            (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python manage.py makemigrations custom_code --check --dry-run) 2>&1 | tee -a "$OUT"
             MIGRATION_CHECK_STATUS=${PIPESTATUS[0]}
           else
             MIGRATION_CHECK_STATUS=99
@@ -193,7 +197,7 @@ jobs:
             "apply_check_status": $APPLY_CHECK_STATUS,
             "apply_status": $APPLY_STATUS,
             "django_check_status": $CHECK_STATUS,
-            "migration_check_status": $MIGRATION_CHECK_STATUS,
+            "custom_code_migration_check_status": $MIGRATION_CHECK_STATUS,
             "migrate_status": $MIGRATE_STATUS,
             "focused_test_status": $FOCUSED_STATUS,
             "full_trove_test_status": $FULL_STATUS,
@@ -204,10 +208,22 @@ jobs:
           }
           EOF
 
+          # Publish artifacts without losing newer staging commits. Copy the generated
+          # files aside, reset the bridge checkout to current remote staging, restore
+          # only validation artifacts, commit, and push.
+          mkdir -p /tmp/trove-rubin-v2-artifacts
+          cp "$PATCH" "$OUTDIR/changed-files.txt" "$OUT" "$STATUS" /tmp/trove-rubin-v2-artifacts/
+          git -C bridge fetch origin project/trove-rubin-bridge
+          git -C bridge reset --hard origin/project/trove-rubin-bridge
+          cp /tmp/trove-rubin-v2-artifacts/0001-rubin-evidence-core.patch "$OUTDIR/0001-rubin-evidence-core.patch"
+          cp /tmp/trove-rubin-v2-artifacts/changed-files.txt "$OUTDIR/changed-files.txt"
+          cp /tmp/trove-rubin-v2-artifacts/validation-output.txt "$OUTDIR/validation-output.txt"
+          cp /tmp/trove-rubin-v2-artifacts/validation-status.json "$OUTDIR/validation-status.json"
           git -C bridge config user.name 'github-actions[bot]'
           git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git -C bridge add projects/trove-rubin-bridge/upstream_patch_v2/0001-rubin-evidence-core.patch projects/trove-rubin-bridge/upstream_patch_v2/changed-files.txt projects/trove-rubin-bridge/upstream_patch_v2/validation-output.txt projects/trove-rubin-bridge/upstream_patch_v2/validation-status.json
-          git -C bridge commit -m 'Freeze validated v2 Rubin evidence patch' || true
+          git -C bridge commit -m 'Freeze validated hardened v2 Rubin evidence patch' || true
           git -C bridge push origin HEAD:project/trove-rubin-bridge
+          PUBLISH_STATUS=$?
 
-          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$APPLY_CHECK_STATUS" -ne 0 ] || [ "$APPLY_STATUS" -ne 0 ] || [ "$CHECK_STATUS" -ne 0 ] || [ "$MIGRATION_CHECK_STATUS" -ne 0 ] || [ "$MIGRATE_STATUS" -ne 0 ] || [ "$FOCUSED_STATUS" -ne 0 ] || [ "$FULL_STATUS" -ne 0 ]; then exit 1; fi
+          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$APPLY_CHECK_STATUS" -ne 0 ] || [ "$APPLY_STATUS" -ne 0 ] || [ "$CHECK_STATUS" -ne 0 ] || [ "$MIGRATION_CHECK_STATUS" -ne 0 ] || [ "$MIGRATE_STATUS" -ne 0 ] || [ "$FOCUSED_STATUS" -ne 0 ] || [ "$FULL_STATUS" -ne 0 ] || [ "$PUBLISH_STATUS" -ne 0 ]; then exit 1; fi
