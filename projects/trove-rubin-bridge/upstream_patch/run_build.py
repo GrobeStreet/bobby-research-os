@@ -22,8 +22,9 @@ builder.TEST_MODULE = builder.TEST_MODULE.replace(
 
 builder.modify_trove()
 
-# `git diff` omits untracked files. Mark the three new TROVE files as
-# intent-to-add so the frozen patch is complete and directly applyable.
+# `git diff` omits untracked files. Mark normal new source/test files as
+# intent-to-add. TROVE intentionally ignores tests/data, so force only the
+# compact frozen real-data fixture into the prospective upstream diff.
 subprocess.run(
     [
         "git",
@@ -31,8 +32,12 @@ subprocess.run(
         "-N",
         "custom_code/rubin_alerts.py",
         "tests/test_rubin_alertstream.py",
-        "tests/data/antares_rubin_locus.json",
     ],
+    cwd=builder.TROVE_ROOT,
+    check=True,
+)
+subprocess.run(
+    ["git", "add", "-N", "-f", "tests/data/antares_rubin_locus.json"],
     cwd=builder.TROVE_ROOT,
     check=True,
 )
