@@ -1,0 +1,85 @@
+name: TROVE Rubin integration validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/run-trove-rubin-integration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bridge staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: project/trove-rubin-bridge
+          path: bridge
+          fetch-depth: 0
+
+      - name: Checkout current TROVE main
+        uses: actions/checkout@v4
+        with:
+          repository: astro-trove/trove
+          ref: main
+          path: trove
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run validation and persist transcript
+        shell: bash
+        run: |
+          set +e
+          OUT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/ci-output.txt"
+          STATUS="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/ci-status.json"
+          : > "$OUT"
+
+          echo '=== environment ===' | tee -a "$OUT"
+          python --version 2>&1 | tee -a "$OUT"
+          echo "trove_commit=$(git -C trove rev-parse HEAD)" | tee -a "$OUT"
+          echo "bridge_commit=$(git -C bridge rev-parse HEAD)" | tee -a "$OUT"
+
+          echo '=== install TROVE pinned dependencies ===' | tee -a "$OUT"
+          python -m pip install -r trove/requirements.txt pytest pytest-django 2>&1 | tee -a "$OUT"
+          INSTALL_STATUS=${PIPESTATUS[0]}
+
+          cp trove/trove_tom/settings_local.template.py trove/trove_tom/settings_local.py
+
+          echo '=== frozen live fixture adapter tests ===' | tee -a "$OUT"
+          PYTHONPATH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/src" \
+            python -m pytest bridge/projects/trove-rubin-bridge/tests/test_real_fixtures.py -q 2>&1 | tee -a "$OUT"
+          FIXTURE_STATUS=${PIPESTATUS[0]}
+
+          echo '=== TROVE actual Django test database integration ===' | tee -a "$OUT"
+          cd trove
+          TROVE_RUBIN_BRIDGE_ROOT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge" \
+          SKIP_DUSTMAP=1 \
+          PYTHONPATH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/src:$GITHUB_WORKSPACE/trove" \
+            python -m pytest "$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/integration/test_trove_db.py" -q 2>&1 | tee -a "$OUT"
+          DB_STATUS=${PIPESTATUS[0]}
+          cd "$GITHUB_WORKSPACE"
+
+          cat > "$STATUS" <<EOF
+          {
+            "install_status": $INSTALL_STATUS,
+            "fixture_test_status": $FIXTURE_STATUS,
+            "trove_db_test_status": $DB_STATUS,
+            "trove_commit": "$(git -C trove rev-parse HEAD)",
+            "bridge_commit_before_results": "$(git -C bridge rev-parse HEAD)"
+          }
+          EOF
+
+          git -C bridge config user.name 'github-actions[bot]'
+          git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C bridge add projects/trove-rubin-bridge/integration/ci-output.txt projects/trove-rubin-bridge/integration/ci-status.json
+          git -C bridge commit -m 'Record TROVE database integration validation' || true
+          git -C bridge push origin HEAD:project/trove-rubin-bridge
+
+          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$FIXTURE_STATUS" -ne 0 ] || [ "$DB_STATUS" -ne 0 ]; then
+            exit 1
+          fi
