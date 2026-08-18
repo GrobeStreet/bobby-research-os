@@ -1,0 +1,47 @@
+name: Observe TROVE Rubin upstream patch
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bridge staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: project/trove-rubin-bridge
+          path: bridge
+          fetch-depth: 0
+
+      - name: Checkout TROVE main
+        uses: actions/checkout@v4
+        with:
+          repository: astro-trove/trove
+          ref: main
+          path: trove
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate exact frozen upstream patch
+        shell: bash
+        run: |
+          ROOT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge"
+          TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" bash "$ROOT/upstream_patch/validate_exact_patch.sh"
+
+      - name: Commit validation artifacts to staging
+        if: always()
+        shell: bash
+        run: |
+          git -C bridge config user.name 'github-actions[bot]'
+          git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C bridge add projects/trove-rubin-bridge/upstream_patch/trove-rubin-issue-23.patch projects/trove-rubin-bridge/upstream_patch/changed-files.txt projects/trove-rubin-bridge/upstream_patch/validation-output.txt projects/trove-rubin-bridge/upstream_patch/validation-status.json || true
+          git -C bridge commit -m 'Freeze validated TROVE Rubin issue 23 upstream patch' || true
+          git -C bridge push origin HEAD:project/trove-rubin-bridge
