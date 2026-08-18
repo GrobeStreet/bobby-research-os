@@ -1,3 +1,4 @@
+# rerun against latest sequencing tests
 name: Bootstrap TROVE Rubin sequencing proof
 
 on:
