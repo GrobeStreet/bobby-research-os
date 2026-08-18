@@ -1,0 +1,64 @@
+{
+  "antares_client_version": "1.14.0",
+  "documented_example_lsst_dia_object_id": "169342393603063964",
+  "fixture_count": 5,
+  "fixtures": [
+    {
+      "alert_count": 133,
+      "alert_grav_wave_association_count": 173,
+      "file": "antares_lsst_['170666303722881099'].json",
+      "locus_grav_wave_events": [],
+      "locus_id": "ANT20242at4wtsxau5p",
+      "lsst_dia_object_id": [
+        "170666303722881099"
+      ],
+      "sha256_canonical_json": "bf6d88e788e93d43fa788200b685257a9b65f6580122e016a211bd76ca560485"
+    },
+    {
+      "alert_count": 398,
+      "alert_grav_wave_association_count": 2677,
+      "file": "antares_lsst_['170666303750144033'].json",
+      "locus_grav_wave_events": [],
+      "locus_id": "ANT2022j9elayd6h0l2",
+      "lsst_dia_object_id": [
+        "170666303750144033"
+      ],
+      "sha256_canonical_json": "9739824094a2541efba5555ecfd2bb372cdf282f44115b6fd8e02c9b624637b1"
+    },
+    {
+      "alert_count": 114,
+      "alert_grav_wave_association_count": 1085,
+      "file": "antares_lsst_['170666303738085425'].json",
+      "locus_grav_wave_events": [],
+      "locus_id": "ANT2025o9e0k7f6emge",
+      "lsst_dia_object_id": [
+        "170666303738085425"
+      ],
+      "sha256_canonical_json": "a19e447af9f4156f0f4b3d132da52e6316c0cd72cf8d9ef4bcd9976663c9fff4"
+    },
+    {
+      "alert_count": 19,
+      "alert_grav_wave_association_count": 0,
+      "file": "antares_lsst_['170666303786319881'].json",
+      "locus_grav_wave_events": [],
+      "locus_id": "ANT2026l6juv3teykwk",
+      "lsst_dia_object_id": [
+        "170666303786319881"
+      ],
+      "sha256_canonical_json": "098c8039da9dd9cec9c56c9f58c6d3ee2482a72877178c646c85ed1bad0ce289"
+    },
+    {
+      "alert_count": 310,
+      "alert_grav_wave_association_count": 1042,
+      "file": "antares_lsst_['170666303763251238'].json",
+      "locus_grav_wave_events": [],
+      "locus_id": "ANT2020aepmbxa",
+      "lsst_dia_object_id": [
+        "170666303763251238"
+      ],
+      "sha256_canonical_json": "57f9ca93b74075d425e9603de52436fc4d097b72fe34e1e816cfee57927af2f2"
+    }
+  ],
+  "retrieved_at_utc": "2026-08-18T21:55:22.741688+00:00",
+  "source": "ANTARES public live database"
+}
