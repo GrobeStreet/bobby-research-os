@@ -45,3 +45,5 @@ jobs:
           fi
           git commit -m 'Freeze real ANTARES LSST fixtures'
           git push origin HEAD:project/trove-rubin-bridge
+
+# Temporary same-repo PR trigger for observable CI diagnostics.
