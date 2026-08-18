@@ -1,0 +1,33 @@
+{
+  "id": "ANT2026synthetic",
+  "ra": 147.47566,
+  "dec": 0.616566666,
+  "properties": {
+    "lsst_dia_object_id": "169342393603063964",
+    "fixture_status": "synthetic-not-captured-from-production"
+  },
+  "tags": ["SYNTHETIC_GW_EVENT", "trove_candidate_demo"],
+  "grav_wave_events": ["SYNTHETIC_GW_EVENT"],
+  "alerts": [
+    {
+      "id": "lsst:synthetic-alert-1",
+      "mjd": 61000.250000,
+      "properties": {
+        "ant_survey_name": "LSST",
+        "ant_passband": "r",
+        "ant_mag": 20.10,
+        "ant_magerr": 0.08
+      }
+    },
+    {
+      "id": "lsst:synthetic-alert-2",
+      "mjd": 61000.350000,
+      "properties": {
+        "ant_survey_name": "LSST",
+        "ant_passband": "g",
+        "ant_mag": 20.42,
+        "ant_magerr": 0.10
+      }
+    }
+  ]
+}

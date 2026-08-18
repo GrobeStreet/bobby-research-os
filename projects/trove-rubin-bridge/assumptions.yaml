@@ -1,0 +1,37 @@
+project: trove-rubin-bridge
+version: 0.1.0
+checked_at_utc: 2026-08-18
+assumptions:
+  - id: A1
+    statement: TROVE issue #23 remains an open, unassigned V1 task for Rubin/LSST alert ingestion.
+    status: verified_public_source
+    sensitivity: critical
+  - id: A2
+    statement: TROVE's public configuration uses tom-alertstreams for current multimessenger streams and does not currently show an ANTARES stream entry.
+    status: verified_public_source
+    sensitivity: high
+  - id: A3
+    statement: tom-alertstreams has an ANTARES adapter that yields Locus objects to configured handlers.
+    status: verified_public_source
+    sensitivity: high
+  - id: A4
+    statement: ANTARES currently receives LSST alerts in real time and can route tagged loci to Kafka streams.
+    status: verified_public_source
+    sensitivity: critical
+  - id: A5
+    statement: ANTARES already associates recent gravitational-wave events to survey alerts and supports probability-region gating for user filters.
+    status: verified_public_source
+    sensitivity: high
+  - id: A6
+    statement: TROVE maintainers want ANTARES specifically as the production Rubin broker path.
+    status: unverified_requires_maintainer
+    sensitivity: critical
+  - id: A7
+    statement: A production Rubin Locus exposes the LSST DIA Object ID under one of the candidate property names recognized by this prototype.
+    status: unverified_fixture_needed
+    sensitivity: medium
+    note: idempotency does not depend on this assumption in v0.1; ANTARES locus_id is used.
+  - id: A8
+    statement: TROVE maintainers want Rubin photometry represented through ReducedDatum with source_location set from the survey alert ID.
+    status: unverified_requires_maintainer
+    sensitivity: high
