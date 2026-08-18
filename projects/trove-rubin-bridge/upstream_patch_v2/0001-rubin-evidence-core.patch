@@ -1,0 +1,1184 @@
+diff --git a/custom_code/admin.py b/custom_code/admin.py
+index 8c38f3f..04f98ed 100644
+--- a/custom_code/admin.py
++++ b/custom_code/admin.py
+@@ -1,3 +1,44 @@
+ from django.contrib import admin
+ 
+-# Register your models here.
++from .models import RubinAlertEvidence
++
++
++@admin.register(RubinAlertEvidence)
++class RubinAlertEvidenceAdmin(admin.ModelAdmin):
++    list_display = (
++        "broker",
++        "source_record_id",
++        "dia_object_id",
++        "dia_source_id",
++        "band",
++        "psf_flux",
++        "delivery_count",
++        "received_at",
++    )
++    search_fields = (
++        "source_record_id",
++        "locus_id",
++        "dia_object_id",
++        "dia_source_id",
++        "payload_sha256",
++    )
++    readonly_fields = (
++        "broker",
++        "locus_id",
++        "source_record_id",
++        "payload_sha256",
++        "dia_object_id",
++        "dia_source_id",
++        "ss_object_id",
++        "midpoint_mjd_tai",
++        "band",
++        "psf_flux",
++        "psf_flux_err",
++        "reliability",
++        "quality_flags",
++        "grav_wave_events",
++        "raw_alert",
++        "received_at",
++        "last_received_at",
++        "delivery_count",
++    )
+diff --git a/custom_code/alertstream_handlers.py b/custom_code/alertstream_handlers.py
+index c5ae2cb..08ba5b5 100644
+--- a/custom_code/alertstream_handlers.py
++++ b/custom_code/alertstream_handlers.py
+@@ -486,3 +486,19 @@ def handle_icecube_alert(alert):
+             calculate_credible_region(skymap, localization)
+ 
+     logger.info(f"Finished processing alert for {nonlocalizedevent.event_id}")
++def handle_antares_rubin_evidence(locus):
++    """Persist Rubin broker evidence without scientific interpretation."""
++    from .rubin_evidence import ingest_antares_rubin_evidence
++
++    result = ingest_antares_rubin_evidence(locus)
++    logger.info(
++        "ANTARES Rubin evidence locus %s: alerts=%s rubin=%s snapshots_created=%s "
++        "duplicates=%s changed_payload_snapshots=%s",
++        getattr(locus, "locus_id", None),
++        result.alerts_seen,
++        result.rubin_alerts_seen,
++        result.snapshots_created,
++        result.duplicate_deliveries,
++        result.changed_payload_snapshots,
++    )
++    return result
+diff --git a/custom_code/migrations/0016_rubinalertevidence.py b/custom_code/migrations/0016_rubinalertevidence.py
+new file mode 100644
+index 0000000..a37aa92
+--- /dev/null
++++ b/custom_code/migrations/0016_rubinalertevidence.py
+@@ -0,0 +1,48 @@
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ("custom_code", "0015_alter_credibleregioncontour_id"),
++    ]
++
++    operations = [
++        migrations.CreateModel(
++            name="RubinAlertEvidence",
++            fields=[
++                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
++                ("broker", models.CharField(default="ANTARES", max_length=50)),
++                ("locus_id", models.CharField(db_index=True, max_length=100)),
++                ("source_record_id", models.CharField(db_index=True, max_length=200)),
++                ("payload_sha256", models.CharField(db_index=True, max_length=64)),
++                ("dia_object_id", models.CharField(blank=True, db_index=True, default="", max_length=100)),
++                ("dia_source_id", models.CharField(blank=True, db_index=True, default="", max_length=100)),
++                ("ss_object_id", models.CharField(blank=True, db_index=True, default="", max_length=100)),
++                ("midpoint_mjd_tai", models.FloatField(blank=True, null=True)),
++                ("band", models.CharField(blank=True, default="", max_length=20)),
++                ("psf_flux", models.FloatField(blank=True, null=True)),
++                ("psf_flux_err", models.FloatField(blank=True, null=True)),
++                ("reliability", models.FloatField(blank=True, null=True)),
++                ("quality_flags", models.JSONField(default=dict)),
++                ("grav_wave_events", models.JSONField(default=list)),
++                ("broker_context", models.JSONField(default=dict)),
++                ("raw_alert", models.JSONField()),
++                ("received_at", models.DateTimeField(auto_now_add=True)),
++                ("last_received_at", models.DateTimeField(auto_now=True)),
++                ("delivery_count", models.PositiveIntegerField(default=1)),
++            ],
++            options={
++                "indexes": [
++                    models.Index(fields=["broker", "dia_object_id"], name="rubin_ev_broker_obj_idx"),
++                    models.Index(fields=["broker", "dia_source_id"], name="rubin_ev_broker_src_idx"),
++                ],
++                "constraints": [
++                    models.UniqueConstraint(
++                        fields=("broker", "source_record_id", "payload_sha256"),
++                        name="unique_rubin_evidence_snapshot",
++                    )
++                ],
++            },
++        ),
++    ]
+diff --git a/custom_code/models.py b/custom_code/models.py
+index f2775a9..f218b06 100644
+--- a/custom_code/models.py
++++ b/custom_code/models.py
+@@ -12,3 +12,45 @@ class CredibleRegionContour(models.Model):
+         constraints = [
+             models.UniqueConstraint(fields=['localization', 'probability'], name='unique_localization_probability')
+         ]
++class RubinAlertEvidence(models.Model):
++    """An immutable scientific-evidence snapshot received from a Rubin alert broker.
++
++    ``raw_alert`` is authoritative. The extracted columns exist only for indexing,
++    routing, and inspection; they must not be treated as a scientific interpretation
++    of the alert.
++    """
++
++    broker = models.CharField(max_length=50, default="ANTARES")
++    locus_id = models.CharField(max_length=100, db_index=True)
++    source_record_id = models.CharField(max_length=200, db_index=True)
++    payload_sha256 = models.CharField(max_length=64, db_index=True)
++
++    dia_object_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
++    dia_source_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
++    ss_object_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
++    midpoint_mjd_tai = models.FloatField(null=True, blank=True)
++    band = models.CharField(max_length=20, blank=True, default="")
++    psf_flux = models.FloatField(null=True, blank=True)
++    psf_flux_err = models.FloatField(null=True, blank=True)
++    reliability = models.FloatField(null=True, blank=True)
++
++    quality_flags = models.JSONField(default=dict)
++    grav_wave_events = models.JSONField(default=list)
++    broker_context = models.JSONField(default=dict)
++    raw_alert = models.JSONField()
++
++    received_at = models.DateTimeField(auto_now_add=True)
++    last_received_at = models.DateTimeField(auto_now=True)
++    delivery_count = models.PositiveIntegerField(default=1)
++
++    class Meta:
++        constraints = [
++            models.UniqueConstraint(
++                fields=["broker", "source_record_id", "payload_sha256"],
++                name="unique_rubin_evidence_snapshot",
++            )
++        ]
++        indexes = [
++            models.Index(fields=["broker", "dia_object_id"], name="rubin_ev_broker_obj_idx"),
++            models.Index(fields=["broker", "dia_source_id"], name="rubin_ev_broker_src_idx"),
++        ]
+diff --git a/custom_code/rubin_evidence.py b/custom_code/rubin_evidence.py
+new file mode 100644
+index 0000000..adf240f
+--- /dev/null
++++ b/custom_code/rubin_evidence.py
+@@ -0,0 +1,227 @@
++from __future__ import annotations
++
++import base64
++import hashlib
++import json
++import math
++from collections.abc import Mapping
++from dataclasses import dataclass
++from datetime import date, datetime
++from typing import Any
++
++from django.db import transaction
++from django.db.models import F
++from django.utils import timezone
++
++from .models import RubinAlertEvidence
++
++BROKER = "ANTARES"
++_NONFINITE_KEY = "__trove_nonfinite_float__"
++_BYTES_KEY = "__trove_bytes_base64__"
++
++
++@dataclass(frozen=True)
++class RubinEvidenceIngestResult:
++    alerts_seen: int
++    rubin_alerts_seen: int
++    snapshots_created: int
++    duplicate_deliveries: int
++    changed_payload_snapshots: int
++
++
++def _get(obj: Any, key: str, default: Any = None) -> Any:
++    if isinstance(obj, Mapping):
++        return obj.get(key, default)
++    return getattr(obj, key, default)
++
++
++def _json_safe(value: Any) -> Any:
++    """Encode broker values without assigning scientific meaning to them."""
++
++    if value is None or isinstance(value, (str, bool, int)):
++        return value
++    if isinstance(value, float):
++        if math.isfinite(value):
++            return value
++        if math.isnan(value):
++            label = "NaN"
++        elif value > 0:
++            label = "+Infinity"
++        else:
++            label = "-Infinity"
++        return {_NONFINITE_KEY: label}
++    if isinstance(value, bytes):
++        return {_BYTES_KEY: base64.b64encode(value).decode("ascii")}
++    if isinstance(value, (datetime, date)):
++        return value.isoformat()
++    if isinstance(value, Mapping):
++        return {str(key): _json_safe(item) for key, item in value.items()}
++    if isinstance(value, (list, tuple)):
++        return [_json_safe(item) for item in value]
++    if isinstance(value, set):
++        return sorted((_json_safe(item) for item in value), key=lambda item: repr(item))
++
++    fields = getattr(value, "__dict__", None)
++    if isinstance(fields, dict):
++        return {
++            "__trove_python_type__": f"{value.__class__.__module__}.{value.__class__.__qualname__}",
++            "__trove_object_fields__": _json_safe(fields),
++        }
++
++    item_method = getattr(value, "item", None)
++    if callable(item_method):
++        try:
++            return _json_safe(item_method())
++        except (TypeError, ValueError):
++            pass
++
++    # ANTARES alert properties are expected to be JSON-like. Unknown values are
++    # preserved explicitly as typed reprs rather than coerced into scientific data.
++    return {
++        "__trove_python_type__": f"{value.__class__.__module__}.{value.__class__.__qualname__}",
++        "__trove_python_repr__": repr(value),
++    }
++
++
++def _canonical_json_bytes(value: Any) -> bytes:
++    return json.dumps(
++        value,
++        sort_keys=True,
++        separators=(",", ":"),
++        ensure_ascii=False,
++        allow_nan=False,
++    ).encode("utf-8")
++
++
++def _alert_payload(alert: Any) -> dict[str, Any]:
++    return _json_safe(
++        {
++            "alert_id": _get(alert, "alert_id"),
++            "mjd": _get(alert, "mjd"),
++            "processed_at": _get(alert, "processed_at"),
++            "properties": _get(alert, "properties", {}) or {},
++            "grav_wave_events": _get(alert, "grav_wave_events", []) or [],
++        }
++    )
++
++
++def _broker_context(locus: Any) -> dict[str, Any]:
++    """Preserve routing/GW context without copying unrelated locus history."""
++
++    return _json_safe(
++        {
++            "locus_id": _get(locus, "locus_id"),
++            "tags": _get(locus, "tags", []) or [],
++            "grav_wave_events": _get(locus, "grav_wave_events", []) or [],
++        }
++    )
++
++
++def _is_rubin_alert(alert: Any) -> bool:
++    alert_id = str(_get(alert, "alert_id", "") or "")
++    properties = _get(alert, "properties", {}) or {}
++    return alert_id.lower().startswith("lsst:") or any(
++        str(key).lower().startswith("lsst_") for key in properties
++    )
++
++
++def _string_or_empty(value: Any) -> str:
++    return "" if value is None else str(value)
++
++
++def _finite_float_or_none(value: Any) -> float | None:
++    if value is None:
++        return None
++    try:
++        number = float(value)
++    except (TypeError, ValueError):
++        return None
++    return number if math.isfinite(number) else None
++
++
++def _quality_flags(properties: Mapping[str, Any]) -> dict[str, bool]:
++    # Convenience index only. Preserve every Rubin DiaSource boolean without
++    # deciding whether True/False means scientifically usable or unusable.
++    return {
++        str(key): bool(value)
++        for key, value in properties.items()
++        if str(key).startswith("lsst_diaSource_") and isinstance(value, bool)
++    }
++
++
++def _snapshot_defaults(
++    locus: Any,
++    alert: Any,
++    raw_alert: dict[str, Any],
++    broker_context: dict[str, Any],
++) -> dict[str, Any]:
++    properties = _get(alert, "properties", {}) or {}
++    return {
++        "locus_id": _string_or_empty(_get(locus, "locus_id")),
++        "dia_object_id": _string_or_empty(properties.get("lsst_diaSource_diaObjectId")),
++        "dia_source_id": _string_or_empty(properties.get("lsst_diaSource_diaSourceId")),
++        "ss_object_id": _string_or_empty(properties.get("lsst_diaSource_ssObjectId")),
++        "midpoint_mjd_tai": _finite_float_or_none(properties.get("lsst_diaSource_midpointMjdTai")),
++        "band": _string_or_empty(properties.get("lsst_diaSource_band")),
++        # Signed values are copied exactly as numeric convenience fields. No abs(),
++        # magnitude conversion, detection classification, or upper-limit inference.
++        "psf_flux": _finite_float_or_none(properties.get("lsst_diaSource_psfFlux")),
++        "psf_flux_err": _finite_float_or_none(properties.get("lsst_diaSource_psfFluxErr")),
++        "reliability": _finite_float_or_none(properties.get("lsst_diaSource_reliability")),
++        "quality_flags": _quality_flags(properties),
++        "grav_wave_events": _json_safe(_get(alert, "grav_wave_events", []) or []),
++        "broker_context": broker_context,
++        "raw_alert": raw_alert,
++    }
++
++
++def ingest_antares_rubin_evidence(locus: Any) -> RubinEvidenceIngestResult:
++    """Persist Rubin alert evidence from one ANTARES Locus without interpreting it."""
++
++    alerts = list(_get(locus, "alerts", []) or [])
++    rubin_alerts = [alert for alert in alerts if _is_rubin_alert(alert)]
++
++    created_count = 0
++    duplicate_count = 0
++    changed_count = 0
++
++    with transaction.atomic():
++        for alert in rubin_alerts:
++            raw_alert = _alert_payload(alert)
++            broker_context = _broker_context(locus)
++            digest = hashlib.sha256(
++                _canonical_json_bytes({"alert": raw_alert, "broker_context": broker_context})
++            ).hexdigest()
++            source_record_id = _string_or_empty(_get(alert, "alert_id")) or f"UNIDENTIFIED:{digest}"
++
++            had_other_snapshot = RubinAlertEvidence.objects.filter(
++                broker=BROKER,
++                source_record_id=source_record_id,
++            ).exclude(payload_sha256=digest).exists()
++
++            evidence, created = RubinAlertEvidence.objects.get_or_create(
++                broker=BROKER,
++                source_record_id=source_record_id,
++                payload_sha256=digest,
++                defaults=_snapshot_defaults(locus, alert, raw_alert, broker_context),
++            )
++
++            if created:
++                created_count += 1
++                if had_other_snapshot:
++                    changed_count += 1
++                continue
++
++            duplicate_count += 1
++            RubinAlertEvidence.objects.filter(pk=evidence.pk).update(
++                delivery_count=F("delivery_count") + 1,
++                last_received_at=timezone.now(),
++            )
++
++    return RubinEvidenceIngestResult(
++        alerts_seen=len(alerts),
++        rubin_alerts_seen=len(rubin_alerts),
++        snapshots_created=created_count,
++        duplicate_deliveries=duplicate_count,
++        changed_payload_snapshots=changed_count,
++    )
+diff --git a/tests/data/antares_rubin_evidence.json b/tests/data/antares_rubin_evidence.json
+new file mode 100644
+index 0000000..2d3c5ee
+--- /dev/null
++++ b/tests/data/antares_rubin_evidence.json
+@@ -0,0 +1,614 @@
++{
++  "fixture_provenance": {
++    "antares_client_version": "1.14.0",
++    "derivation": "one real non-Rubin alert plus both real Rubin alerts; values unchanged",
++    "derived_for_upstream_test": true,
++    "retrieved_at_utc": "2026-08-18T22:30:18.233902+00:00",
++    "scanned_loci": 13,
++    "selection": "first locus within 250 LSST-associated search results with >=2 lsst: alerts",
++    "source": "ANTARES public live database"
++  },
++  "locus": {
++    "alerts": [
++      {
++        "alert_id": "ztf_upper_limit:ZTF21abjspyo-1617413941915",
++        "grav_wave_events": [],
++        "mjd": 59371.413946799934,
++        "processed_at": "2021-07-07T08:59:53.534000",
++        "properties": {
++          "ant_input_msg_time": 1625483041,
++          "ant_maglim": 20.154699325561523,
++          "ant_mjd": 59371.413946799934,
++          "ant_passband": "g",
++          "ant_survey": 2,
++          "ant_time_received": 1625648391,
++          "ztf_clrcoeff": -0.0604713000357151,
++          "ztf_clrcounc": 2.903990025515668e-05,
++          "ztf_diffmaglim": 20.154699325561523,
++          "ztf_fid": 1,
++          "ztf_field": 496,
++          "ztf_jd": 2459371.9139468,
++          "ztf_magzpsci": 26.027099609375,
++          "ztf_magzpscirms": 0.03723229840397835,
++          "ztf_magzpsciunc": 1.728549977997318e-05,
++          "ztf_nid": 1617,
++          "ztf_pdiffimfilename": "/ztf/archive/sci/2021/0606/413935/ztf_20210606413935_000496_zg_c05_o_q4_scimrefdiffimg.fits.fz",
++          "ztf_pid": 1617413941915,
++          "ztf_programid": 1,
++          "ztf_programpi": "Kulkarni",
++          "ztf_rbversion": "t17_f5_c3",
++          "ztf_rcid": 19
++        }
++      },
++      {
++        "alert_id": "lsst:170604730330906635",
++        "grav_wave_events": [],
++        "mjd": 61221.369138642316,
++        "processed_at": "2026-06-30T09:00:21.836000",
++        "properties": {
++          "ant_dec": 3.1270617540933907,
++          "ant_mag": 21.174797592083863,
++          "ant_magerr": 0.042210139873237434,
++          "ant_maglim": 21.174797592083863,
++          "ant_mjd": 61221.369138642316,
++          "ant_passband": "i",
++          "ant_ra": 347.7033708774551,
++          "ant_survey": 4,
++          "ant_time_received": 1782810022,
++          "lsst_diaObject_dec": 3.1270617540933907,
++          "lsst_diaObject_decErr": 7.200355867098551e-07,
++          "lsst_diaObject_diaObjectId": 170604730330906635,
++          "lsst_diaObject_g_psfFluxNdata": 0,
++          "lsst_diaObject_i_psfFluxErrMean": 478.3804626464844,
++          "lsst_diaObject_i_psfFluxMax": -12304.9814453125,
++          "lsst_diaObject_i_psfFluxMean": -12304.98046875,
++          "lsst_diaObject_i_psfFluxMeanErr": 478.38043212890625,
++          "lsst_diaObject_i_psfFluxMin": -12304.9814453125,
++          "lsst_diaObject_i_psfFluxNdata": 1,
++          "lsst_diaObject_i_scienceFluxMean": 139856.234375,
++          "lsst_diaObject_i_scienceFluxMeanErr": 467.91986083984375,
++          "lsst_diaObject_nDiaSources": 1,
++          "lsst_diaObject_r_psfFluxNdata": 0,
++          "lsst_diaObject_ra": 347.7033708774551,
++          "lsst_diaObject_raErr": 7.110733690751658e-07,
++          "lsst_diaObject_ra_dec_Cov": -5.313628260539358e-15,
++          "lsst_diaObject_u_psfFluxNdata": 0,
++          "lsst_diaObject_validityStartMjdTai": 61221.37049014182,
++          "lsst_diaObject_y_psfFluxNdata": 0,
++          "lsst_diaObject_z_psfFluxNdata": 0,
++          "lsst_diaSource_apFlux": -14285.1181640625,
++          "lsst_diaSource_apFluxErr": 968.060302734375,
++          "lsst_diaSource_apFlux_flag": false,
++          "lsst_diaSource_apFlux_flag_apertureTruncated": false,
++          "lsst_diaSource_band": "i",
++          "lsst_diaSource_bboxSize": 28,
++          "lsst_diaSource_centroid_flag": false,
++          "lsst_diaSource_dec": 3.1270617540933907,
++          "lsst_diaSource_decErr": 7.200355867098551e-07,
++          "lsst_diaSource_detector": 140,
++          "lsst_diaSource_diaObjectId": 170604730330906635,
++          "lsst_diaSource_diaSourceId": 170604730330906635,
++          "lsst_diaSource_dipoleAngle": -112.09920501708984,
++          "lsst_diaSource_dipoleChi2": 6023.529296875,
++          "lsst_diaSource_dipoleFitAttempted": true,
++          "lsst_diaSource_dipoleFluxDiff": 0.0,
++          "lsst_diaSource_dipoleFluxDiffErr": 1095.9237060546875,
++          "lsst_diaSource_dipoleLength": 0.008255138993263245,
++          "lsst_diaSource_dipoleMeanFlux": 144913.796875,
++          "lsst_diaSource_dipoleMeanFluxErr": 547.9618530273438,
++          "lsst_diaSource_dipoleNdata": 1518,
++          "lsst_diaSource_extendedness": 0.9248448014259338,
++          "lsst_diaSource_forced_PsfFlux_flag": false,
++          "lsst_diaSource_forced_PsfFlux_flag_edge": false,
++          "lsst_diaSource_forced_PsfFlux_flag_noGoodPixels": false,
++          "lsst_diaSource_glint_trail": false,
++          "lsst_diaSource_isDipole": true,
++          "lsst_diaSource_isNegative": false,
++          "lsst_diaSource_ixx": 0.19130298495292664,
++          "lsst_diaSource_ixxPSF": 0.12292872369289398,
++          "lsst_diaSource_ixy": 0.0652826800942421,
++          "lsst_diaSource_ixyPSF": 0.01232119183987379,
++          "lsst_diaSource_iyy": 0.2803077697753906,
++          "lsst_diaSource_iyyPSF": 0.12293344736099243,
++          "lsst_diaSource_midpointMjdTai": 61221.369138642316,
++          "lsst_diaSource_parentDiaSourceId": 0,
++          "lsst_diaSource_pixelFlags": false,
++          "lsst_diaSource_pixelFlags_bad": false,
++          "lsst_diaSource_pixelFlags_cr": false,
++          "lsst_diaSource_pixelFlags_crCenter": false,
++          "lsst_diaSource_pixelFlags_edge": false,
++          "lsst_diaSource_pixelFlags_injected": false,
++          "lsst_diaSource_pixelFlags_injectedCenter": false,
++          "lsst_diaSource_pixelFlags_injected_template": false,
++          "lsst_diaSource_pixelFlags_injected_templateCenter": false,
++          "lsst_diaSource_pixelFlags_interpolated": false,
++          "lsst_diaSource_pixelFlags_interpolatedCenter": false,
++          "lsst_diaSource_pixelFlags_nodata": false,
++          "lsst_diaSource_pixelFlags_nodataCenter": false,
++          "lsst_diaSource_pixelFlags_offimage": false,
++          "lsst_diaSource_pixelFlags_saturated": false,
++          "lsst_diaSource_pixelFlags_saturatedCenter": false,
++          "lsst_diaSource_pixelFlags_streak": false,
++          "lsst_diaSource_pixelFlags_streakCenter": false,
++          "lsst_diaSource_pixelFlags_suspect": false,
++          "lsst_diaSource_pixelFlags_suspectCenter": false,
++          "lsst_diaSource_psfChi2": 2737.517333984375,
++          "lsst_diaSource_psfFlux": -12304.9814453125,
++          "lsst_diaSource_psfFluxErr": 478.3804626464844,
++          "lsst_diaSource_psfFlux_flag": false,
++          "lsst_diaSource_psfFlux_flag_edge": false,
++          "lsst_diaSource_psfFlux_flag_noGoodPixels": false,
++          "lsst_diaSource_psfNdata": 1681,
++          "lsst_diaSource_ra": 347.7033708774551,
++          "lsst_diaSource_raErr": 7.110733690751658e-07,
++          "lsst_diaSource_ra_dec_Cov": -5.313628260539358e-15,
++          "lsst_diaSource_reliability": 0.9397743344306946,
++          "lsst_diaSource_scienceFlux": 139856.234375,
++          "lsst_diaSource_scienceFluxErr": 467.9198303222656,
++          "lsst_diaSource_shape_flag": false,
++          "lsst_diaSource_shape_flag_no_pixels": false,
++          "lsst_diaSource_shape_flag_not_contained": false,
++          "lsst_diaSource_shape_flag_parent_source": false,
++          "lsst_diaSource_snr": 5.8786773681640625,
++          "lsst_diaSource_ssObjectId": 0,
++          "lsst_diaSource_templateFlux": 153066.1875,
++          "lsst_diaSource_templateFluxErr": 218.43785095214844,
++          "lsst_diaSource_timeProcessedMjdTai": 61221.370461933635,
++          "lsst_diaSource_trailAngle": 42.44825744628906,
++          "lsst_diaSource_trailDec": 3.127078093770485,
++          "lsst_diaSource_trailFlux": -15603.9853515625,
++          "lsst_diaSource_trailLength": 1.2616918087005615,
++          "lsst_diaSource_trailNdata": 0,
++          "lsst_diaSource_trailRa": 347.70340508270544,
++          "lsst_diaSource_trail_flag_edge": false,
++          "lsst_diaSource_visit": 2026062900805,
++          "lsst_diaSource_x": 1214.8621826171875,
++          "lsst_diaSource_xErr": 0.012975845485925674,
++          "lsst_diaSource_y": 179.68206787109375,
++          "lsst_diaSource_yErr": 0.012769791297614574,
++          "lsst_observation_reason": "pairs_iz_33.0",
++          "lsst_target_name": "nes, lowdust"
++        }
++      },
++      {
++        "alert_id": "lsst:170644258801319967",
++        "grav_wave_events": [],
++        "mjd": 61230.35004101669,
++        "processed_at": "2026-07-09T12:34:48.555000",
++        "properties": {
++          "ant_dec": 3.127062606772178,
++          "ant_mag": 21.112438557691,
++          "ant_magerr": 0.037760072432310936,
++          "ant_maglim": 21.112438557691,
++          "ant_mjd": 61230.35004101669,
++          "ant_passband": "i",
++          "ant_ra": 347.70337058974724,
++          "ant_survey": 4,
++          "ant_time_received": 1783600489,
++          "lsst_diaObject_dec": 3.127062172190296,
++          "lsst_diaObject_decErr": 5.171295924810693e-07,
++          "lsst_diaObject_diaObjectId": 170604730330906635,
++          "lsst_diaObject_g_psfFluxNdata": 0,
++          "lsst_diaObject_i_psfFluxErrMean": 465.812744140625,
++          "lsst_diaObject_i_psfFluxMax": -12304.9814453125,
++          "lsst_diaObject_i_psfFluxMaxSlope": -80.99674224853516,
++          "lsst_diaObject_i_psfFluxMean": -12688.3037109375,
++          "lsst_diaObject_i_psfFluxMeanErr": 329.01983642578125,
++          "lsst_diaObject_i_psfFluxMin": -13032.4052734375,
++          "lsst_diaObject_i_psfFluxNdata": 2,
++          "lsst_diaObject_i_psfFluxSigma": 514.3663330078125,
++          "lsst_diaObject_i_scienceFluxMean": 139122.84375,
++          "lsst_diaObject_i_scienceFluxMeanErr": 317.6100769042969,
++          "lsst_diaObject_nDiaSources": 2,
++          "lsst_diaObject_r_psfFluxNdata": 0,
++          "lsst_diaObject_ra": 347.7033707175348,
++          "lsst_diaObject_raErr": 5.017335524826194e-07,
++          "lsst_diaObject_ra_dec_Cov": 6.769285720614922e-15,
++          "lsst_diaObject_u_psfFluxNdata": 0,
++          "lsst_diaObject_validityStartMjdTai": 61230.35154364949,
++          "lsst_diaObject_y_psfFluxNdata": 0,
++          "lsst_diaObject_z_psfFluxNdata": 0,
++          "lsst_diaSource_apFlux": -14497.978515625,
++          "lsst_diaSource_apFluxErr": 762.044921875,
++          "lsst_diaSource_apFlux_flag": false,
++          "lsst_diaSource_apFlux_flag_apertureTruncated": false,
++          "lsst_diaSource_band": "i",
++          "lsst_diaSource_bboxSize": 31,
++          "lsst_diaSource_centroid_flag": false,
++          "lsst_diaSource_dec": 3.127062606772178,
++          "lsst_diaSource_decErr": 7.442006904057052e-07,
++          "lsst_diaSource_detector": 154,
++          "lsst_diaSource_diaObjectId": 170604730330906635,
++          "lsst_diaSource_diaSourceId": 170644258801319967,
++          "lsst_diaSource_dipoleAngle": -50.04622268676758,
++          "lsst_diaSource_dipoleChi2": 5272.634765625,
++          "lsst_diaSource_dipoleFitAttempted": true,
++          "lsst_diaSource_dipoleFluxDiff": 0.0,
++          "lsst_diaSource_dipoleFluxDiffErr": 1063.2552490234375,
++          "lsst_diaSource_dipoleLength": 0.011617197655141354,
++          "lsst_diaSource_dipoleMeanFlux": 144801.96875,
++          "lsst_diaSource_dipoleMeanFluxErr": 531.6276245117188,
++          "lsst_diaSource_dipoleNdata": 1872,
++          "lsst_diaSource_extendedness": 0.858121395111084,
++          "lsst_diaSource_forced_PsfFlux_flag": false,
++          "lsst_diaSource_forced_PsfFlux_flag_edge": false,
++          "lsst_diaSource_forced_PsfFlux_flag_noGoodPixels": false,
++          "lsst_diaSource_glint_trail": false,
++          "lsst_diaSource_isDipole": true,
++          "lsst_diaSource_isNegative": false,
++          "lsst_diaSource_ixx": 0.27486753463745117,
++          "lsst_diaSource_ixxPSF": 0.14758388698101044,
++          "lsst_diaSource_ixy": 0.01999191753566265,
++          "lsst_diaSource_ixyPSF": -0.0041992561891674995,
++          "lsst_diaSource_iyy": 0.1832733005285263,
++          "lsst_diaSource_iyyPSF": 0.11013001948595047,
++          "lsst_diaSource_midpointMjdTai": 61230.35004101669,
++          "lsst_diaSource_parentDiaSourceId": 0,
++          "lsst_diaSource_pixelFlags": false,
++          "lsst_diaSource_pixelFlags_bad": false,
++          "lsst_diaSource_pixelFlags_cr": true,
++          "lsst_diaSource_pixelFlags_crCenter": false,
++          "lsst_diaSource_pixelFlags_edge": false,
++          "lsst_diaSource_pixelFlags_injected": false,
++          "lsst_diaSource_pixelFlags_injectedCenter": false,
++          "lsst_diaSource_pixelFlags_injected_template": false,
++          "lsst_diaSource_pixelFlags_injected_templateCenter": false,
++          "lsst_diaSource_pixelFlags_interpolated": false,
++          "lsst_diaSource_pixelFlags_interpolatedCenter": false,
++          "lsst_diaSource_pixelFlags_nodata": false,
++          "lsst_diaSource_pixelFlags_nodataCenter": false,
++          "lsst_diaSource_pixelFlags_offimage": false,
++          "lsst_diaSource_pixelFlags_saturated": false,
++          "lsst_diaSource_pixelFlags_saturatedCenter": false,
++          "lsst_diaSource_pixelFlags_streak": false,
++          "lsst_diaSource_pixelFlags_streakCenter": false,
++          "lsst_diaSource_pixelFlags_suspect": false,
++          "lsst_diaSource_pixelFlags_suspectCenter": false,
++          "lsst_diaSource_psfChi2": 3313.88720703125,
++          "lsst_diaSource_psfFlux": -13032.4052734375,
++          "lsst_diaSource_psfFluxErr": 453.24505615234375,
++          "lsst_diaSource_psfFlux_flag": false,
++          "lsst_diaSource_psfFlux_flag_edge": false,
++          "lsst_diaSource_psfFlux_flag_noGoodPixels": false,
++          "lsst_diaSource_psfNdata": 1681,
++          "lsst_diaSource_ra": 347.70337058974724,
++          "lsst_diaSource_raErr": 7.090435474310652e-07,
++          "lsst_diaSource_ra_dec_Cov": 3.3525499677821216e-14,
++          "lsst_diaSource_reliability": 0.8960589170455933,
++          "lsst_diaSource_reliabilityVersion": "0.2",
++          "lsst_diaSource_scienceFlux": 138496.265625,
++          "lsst_diaSource_scienceFluxErr": 432.504638671875,
++          "lsst_diaSource_shape_flag": false,
++          "lsst_diaSource_shape_flag_no_pixels": false,
++          "lsst_diaSource_shape_flag_not_contained": false,
++          "lsst_diaSource_shape_flag_parent_source": false,
++          "lsst_diaSource_snr": 5.302468776702881,
++          "lsst_diaSource_ssObjectId": 0,
++          "lsst_diaSource_templateFlux": 153358.15625,
++          "lsst_diaSource_templateFluxErr": 153.72988891601562,
++          "lsst_diaSource_timeProcessedMjdTai": 61230.35150632168,
++          "lsst_diaSource_trailAlgorithm": 2,
++          "lsst_diaSource_trailAngle": 38.438629150390625,
++          "lsst_diaSource_trailDec": 3.127040696156088,
++          "lsst_diaSource_trailFlux": -15571.7421875,
++          "lsst_diaSource_trailLength": 1.0318080186843872,
++          "lsst_diaSource_trailNdata": 0,
++          "lsst_diaSource_trailRa": 347.703398985415,
++          "lsst_diaSource_trail_flag": false,
++          "lsst_diaSource_trail_flag_edge": false,
++          "lsst_diaSource_visit": 2026070800403,
++          "lsst_diaSource_x": 3459.335205078125,
++          "lsst_diaSource_xErr": 0.013619461096823215,
++          "lsst_diaSource_y": 608.5018920898438,
++          "lsst_diaSource_yErr": 0.012555660679936409,
++          "lsst_observation_reason": "pairs_iz_33.0",
++          "lsst_target_name": "lowdust"
++        }
++      }
++    ],
++    "dec": 3.127065903165345,
++    "grav_wave_events": [],
++    "locus_id": "ANT2021silgg",
++    "properties": {
++      "anomaly_mask": "Pass",
++      "anomaly_score": 0.5077986748157717,
++      "anomaly_type": "Inlier",
++      "brightest_alert_id": "ztf_candidate:1630384161915010044",
++      "brightest_alert_magnitude": 19.72410011291504,
++      "brightest_alert_observation_time": 59384.384166699834,
++      "feature_amplitude_magn_R": 0.15202617645263672,
++      "feature_amplitude_magn_g": 0.4907999038696289,
++      "feature_amplitude_magn_i": 0.031179517196431306,
++      "feature_amplitude_magn_r": 0.15202617645263672,
++      "feature_anderson_darling_normal_flux_R": 0.17610504670910265,
++      "feature_anderson_darling_normal_flux_g": 1.4625589482180144,
++      "feature_anderson_darling_normal_flux_r": 0.1354752587627919,
++      "feature_anderson_darling_normal_magn_R": 0.18394520817335352,
++      "feature_anderson_darling_normal_magn_g": 0.7663974043284143,
++      "feature_anderson_darling_normal_magn_r": 0.13480010316885968,
++      "feature_bazin_fit_amplitude_R": 1.279871760850759e-05,
++      "feature_bazin_fit_amplitude_g": 0.0,
++      "feature_bazin_fit_baseline_R": 1.499871640090905e-05,
++      "feature_bazin_fit_baseline_g": 2.5232836961371982e-05,
++      "feature_bazin_fit_fall_time_R": 246.2211376737534,
++      "feature_bazin_fit_fall_time_g": 229.53848911359862,
++      "feature_bazin_fit_reduced_chi2_R": 0.19710785985289045,
++      "feature_bazin_fit_reduced_chi2_g": 0.23913274459555192,
++      "feature_bazin_fit_reference_time_R": 59796.331788234005,
++      "feature_bazin_fit_reference_time_g": 58989.73906742817,
++      "feature_bazin_fit_rise_time_R": 244.6171800493515,
++      "feature_bazin_fit_rise_time_g": 237688.09189218402,
++      "feature_beyond_1_std_magn_R": 0.4,
++      "feature_beyond_1_std_magn_g": 0.20689655172413793,
++      "feature_beyond_1_std_magn_i": 0.0,
++      "feature_beyond_1_std_magn_r": 0.25,
++      "feature_beyond_2_std_magn_R": 0.0,
++      "feature_beyond_2_std_magn_g": 0.06896551724137931,
++      "feature_beyond_2_std_magn_i": 0.0,
++      "feature_beyond_2_std_magn_r": 0.0,
++      "feature_bins_window1.0_offset0.0_eta_e_magn_R": 3819.3136115448656,
++      "feature_bins_window1.0_offset0.0_eta_e_magn_g": 1670.3750526407782,
++      "feature_bins_window1.0_offset0.0_linear_trend_magn_g": 1.6214806700803628e-05,
++      "feature_bins_window1.0_offset0.0_linear_trend_noise_magn_R": 0.14813873503674327,
++      "feature_bins_window1.0_offset0.0_linear_trend_noise_magn_g": 0.18419522109976608,
++      "feature_bins_window1.0_offset0.0_linear_trend_sigma_magn_R": 9.267265245382938e-05,
++      "feature_bins_window1.0_offset0.0_linear_trend_sigma_magn_g": 4.10938039241333e-05,
++      "feature_bins_window1.0_offset0.0_maximum_slope_magn_R": 0.03240013122558594,
++      "feature_bins_window1.0_offset0.0_maximum_slope_magn_g": 0.3326435089111328,
++      "feature_chi2_flux_R": 0.4044445109352836,
++      "feature_chi2_flux_g": 0.3798063203773977,
++      "feature_chi2_flux_i": 1.1237401706611228e-65,
++      "feature_chi2_flux_r": 0.5384441311298974,
++      "feature_chi2_magn_R": 0.386634681939115,
++      "feature_chi2_magn_g": 0.4120607755063886,
++      "feature_chi2_magn_i": 1.2123542204505835,
++      "feature_chi2_magn_r": 0.5150809712206097,
++      "feature_cusum_flux_R": 0.4051182967453461,
++      "feature_cusum_flux_g": 0.2582830037160574,
++      "feature_cusum_flux_i": 0.35355339059327284,
++      "feature_cusum_flux_r": 0.42329211521142074,
++      "feature_cusum_magn_R": 0.4079603622474593,
++      "feature_cusum_magn_g": 0.26733289979014246,
++      "feature_cusum_magn_i": 0.35355339059327373,
++      "feature_cusum_magn_r": 0.4226889801982183,
++      "feature_duration_magn_R": 1866.875324100256,
++      "feature_duration_magn_g": 1886.0614236001857,
++      "feature_duration_magn_i": 8.980902374372818,
++      "feature_eta_e_flux_R": 3201.8690104047914,
++      "feature_eta_e_flux_g": 71179.4595369666,
++      "feature_eta_e_flux_i": 2.0,
++      "feature_eta_e_flux_r": 24.396659013008716,
++      "feature_eta_e_magn_R": 3916.4456777652445,
++      "feature_eta_e_magn_g": 86852.63995227563,
++      "feature_eta_e_magn_i": 2.0,
++      "feature_eta_e_magn_r": 29.987022632392453,
++      "feature_excess_variance_flux_g": -0.015967923709850118,
++      "feature_excess_variance_flux_r": -0.01565172938346914,
++      "feature_inter_percentile_range_10_magn_R": 0.30405235290527344,
++      "feature_inter_percentile_range_10_magn_g": 0.34643853360103094,
++      "feature_inter_percentile_range_10_magn_i": 0.06235903439286261,
++      "feature_inter_percentile_range_10_magn_r": 0.30405235290527344,
++      "feature_inter_percentile_range_25_magn_R": 0.22226428985595703,
++      "feature_inter_percentile_range_25_magn_g": 0.1725153923034668,
++      "feature_inter_percentile_range_25_magn_i": 0.06235903439286261,
++      "feature_inter_percentile_range_25_magn_r": 0.2495269775390625,
++      "feature_inter_percentile_range_2_magn_R": 0.30405235290527344,
++      "feature_inter_percentile_range_2_magn_g": 0.9372193314690094,
++      "feature_inter_percentile_range_2_magn_i": 0.06235903439286261,
++      "feature_inter_percentile_range_2_magn_r": 0.30405235290527344,
++      "feature_kurtosis_flux_g": 9.792873340184052,
++      "feature_kurtosis_flux_r": -4.72698291151856,
++      "feature_kurtosis_magn_g": 5.017565103832153,
++      "feature_kurtosis_magn_r": -4.65094460166077,
++      "feature_linear_fit_reduced_chi2_magn_R": 0.5130674054190215,
++      "feature_linear_fit_reduced_chi2_magn_g": 0.42474239506499495,
++      "feature_linear_fit_reduced_chi2_magn_r": 0.5233029703272342,
++      "feature_linear_fit_slope_magn_R": 1.1418167497499563e-05,
++      "feature_linear_fit_slope_magn_g": 0.0016291441505259952,
++      "feature_linear_fit_slope_magn_r": 0.0013362345028900373,
++      "feature_linear_fit_slope_sigma_magn_R": 0.00013330658662191448,
++      "feature_linear_fit_slope_sigma_magn_g": 5.056404130607787e-05,
++      "feature_linear_fit_slope_sigma_magn_r": 0.0018923019753415665,
++      "feature_linear_trend_magn_g": 8.959225789085376e-06,
++      "feature_linear_trend_magn_r": 0.0017071388937048239,
++      "feature_linear_trend_noise_magn_R": 0.14813811293064366,
++      "feature_linear_trend_noise_magn_g": 0.1753604397934031,
++      "feature_linear_trend_sigma_magn_R": 9.267051760601255e-05,
++      "feature_linear_trend_sigma_magn_g": 3.724616338192334e-05,
++      "feature_linear_trend_sigma_magn_r": 0.0013693629401320677,
++      "feature_magnitude_percentage_ratio_20_5_magn_R": 0.8206710954701997,
++      "feature_magnitude_percentage_ratio_20_5_magn_g": 0.43208591612705843,
++      "feature_magnitude_percentage_ratio_20_5_magn_i": 1.0,
++      "feature_magnitude_percentage_ratio_20_5_magn_r": 0.89240266570965,
++      "feature_magnitude_percentage_ratio_40_5_magn_R": 0.3206710954701997,
++      "feature_magnitude_percentage_ratio_40_5_magn_g": 0.17273213514618188,
++      "feature_magnitude_percentage_ratio_40_5_magn_i": 0.40000003576281,
++      "feature_magnitude_percentage_ratio_40_5_magn_r": 0.5130737986246876,
++      "feature_maximum_slope_magn_R": 0.03285550690876345,
++      "feature_maximum_slope_magn_g": 3.131917296966465,
++      "feature_maximum_slope_magn_i": 0.006943515450162931,
++      "feature_maximum_slope_magn_r": 0.03285550690876345,
++      "feature_mean_magn_R": 20.269729232788087,
++      "feature_mean_magn_g": 20.334071455330683,
++      "feature_mean_magn_i": 21.14361807488743,
++      "feature_mean_magn_r": 20.27613639831543,
++      "feature_mean_variance_flux_R": 0.11682769182582749,
++      "feature_mean_variance_flux_g": 0.17827769378118877,
++      "feature_mean_variance_flux_i": 0.040601371196914426,
++      "feature_mean_variance_flux_r": 0.13500257910615515,
++      "feature_median_absolute_deviation_magn_R": 0.1148529052734375,
++      "feature_median_absolute_deviation_magn_g": 0.08986282348632812,
++      "feature_median_absolute_deviation_magn_i": 0.031179517196431306,
++      "feature_median_absolute_deviation_magn_r": 0.11962604522705078,
++      "feature_median_buffer_range_percentage_10_magn_R": 0.2,
++      "feature_median_buffer_range_percentage_10_magn_g": 0.27586206896551724,
++      "feature_median_buffer_range_percentage_10_magn_i": 0.0,
++      "feature_median_buffer_range_percentage_10_magn_r": 0.0,
++      "feature_median_buffer_range_percentage_20_magn_R": 0.2,
++      "feature_median_buffer_range_percentage_20_magn_g": 0.5862068965517241,
++      "feature_median_buffer_range_percentage_20_magn_i": 0.0,
++      "feature_median_buffer_range_percentage_20_magn_r": 0.0,
++      "feature_otsu_lower_to_all_ratio_magn_R": 0.6,
++      "feature_otsu_lower_to_all_ratio_magn_g": 0.4482758620689655,
++      "feature_otsu_lower_to_all_ratio_magn_i": 0.5,
++      "feature_otsu_mean_diff_magn_R": 0.21861775716145715,
++      "feature_otsu_mean_diff_magn_g": 0.23755053373483648,
++      "feature_otsu_mean_diff_magn_i": 0.06235903439286261,
++      "feature_otsu_std_lower_magn_R": 0.05792811183990173,
++      "feature_otsu_std_lower_magn_g": 0.1532259228050981,
++      "feature_otsu_std_lower_magn_i": 0.0,
++      "feature_otsu_std_upper_magn_R": 0.04582070500189164,
++      "feature_otsu_std_upper_magn_g": 0.09851720078008049,
++      "feature_otsu_std_upper_magn_i": 0.0,
++      "feature_percent_amplitude_magn_R": 0.18919944763183594,
++      "feature_percent_amplitude_magn_g": 0.6154994964599609,
++      "feature_percent_amplitude_magn_i": 0.031179517196431306,
++      "feature_percent_amplitude_magn_r": 0.16230106353759766,
++      "feature_percent_difference_magnitude_percentile_10_magn_R": 0.015019306579896113,
++      "feature_percent_difference_magnitude_percentile_10_magn_g": 0.017032711570258704,
++      "feature_percent_difference_magnitude_percentile_10_magn_i": 0.0029493076431855955,
++      "feature_percent_difference_magnitude_percentile_10_magn_r": 0.014999376872528631,
++      "feature_percent_difference_magnitude_percentile_5_magn_R": 0.015019306579896113,
++      "feature_percent_difference_magnitude_percentile_5_magn_g": 0.02234957138142447,
++      "feature_percent_difference_magnitude_percentile_5_magn_i": 0.0029493076431855955,
++      "feature_percent_difference_magnitude_percentile_5_magn_r": 0.014999376872528631,
++      "feature_period_0_magn_R": 233.359415512532,
++      "feature_period_0_magn_g": 11.213666820650605,
++      "feature_period_0_magn_i": 29.93634124790939,
++      "feature_period_0_magn_r": 70.58258185514073,
++      "feature_period_1_magn_R": 220.1503919929547,
++      "feature_period_1_magn_g": 11.14330154111429,
++      "feature_period_1_magn_i": 14.968170623954695,
++      "feature_period_1_magn_r": 95.4940813334257,
++      "feature_period_2_magn_R": 73.84791630143418,
++      "feature_period_2_magn_g": 11.284926401833248,
++      "feature_period_2_magn_i": 0.0,
++      "feature_period_2_magn_r": 231.91419752403382,
++      "feature_period_3_magn_R": 94.86155102135447,
++      "feature_period_3_magn_g": 11.073813833091469,
++      "feature_period_3_magn_i": 0.0,
++      "feature_period_3_magn_r": 52.36772202155603,
++      "feature_period_4_magn_R": 90.10016042954904,
++      "feature_period_4_magn_g": 21.419087282426922,
++      "feature_period_4_magn_i": 0.0,
++      "feature_period_4_magn_r": 27.515243774037913,
++      "feature_period_s_to_n_0_magn_R": 1.9544059874036723,
++      "feature_period_s_to_n_0_magn_g": 5.923049115904956,
++      "feature_period_s_to_n_0_magn_i": 0.8344091485799525,
++      "feature_period_s_to_n_0_magn_r": 1.8658086580650293,
++      "feature_period_s_to_n_1_magn_R": 1.8997177857424659,
++      "feature_period_s_to_n_1_magn_g": 5.84084030343831,
++      "feature_period_s_to_n_1_magn_i": 0.6354459198976455,
++      "feature_period_s_to_n_1_magn_r": 1.7957521440949482,
++      "feature_period_s_to_n_2_magn_R": 1.689309962890556,
++      "feature_period_s_to_n_2_magn_g": 5.645113128671453,
++      "feature_period_s_to_n_2_magn_i": 0.0,
++      "feature_period_s_to_n_2_magn_r": 1.7394708785223567,
++      "feature_period_s_to_n_3_magn_R": 1.6745066646333007,
++      "feature_period_s_to_n_3_magn_g": 5.385367931998389,
++      "feature_period_s_to_n_3_magn_i": 0.0,
++      "feature_period_s_to_n_3_magn_r": 1.1665079660963302,
++      "feature_period_s_to_n_4_magn_R": 1.6285752738526103,
++      "feature_period_s_to_n_4_magn_g": 5.10104346059266,
++      "feature_period_s_to_n_4_magn_i": 0.0,
++      "feature_period_s_to_n_4_magn_r": -0.5314327794252907,
++      "feature_periodogram_amplitude_magn_R": 1.107843709253019,
++      "feature_periodogram_amplitude_magn_g": 2.4679453762850097,
++      "feature_periodogram_amplitude_magn_i": 0.38805788340714675,
++      "feature_periodogram_amplitude_magn_r": 0.7043465894280256,
++      "feature_periodogram_beyond_2_std_magn_R": 0.009765625,
++      "feature_periodogram_beyond_2_std_magn_g": 0.0462646484375,
++      "feature_periodogram_beyond_2_std_magn_i": 0.09375,
++      "feature_periodogram_beyond_2_std_magn_r": 0.0,
++      "feature_periodogram_beyond_3_std_magn_R": 0.001953125,
++      "feature_periodogram_beyond_3_std_magn_g": 0.016845703125,
++      "feature_periodogram_beyond_3_std_magn_i": 0.0,
++      "feature_periodogram_beyond_3_std_magn_r": 0.0,
++      "feature_periodogram_standard_deviation_magn_R": 0.38918335948397675,
++      "feature_periodogram_standard_deviation_magn_g": 0.6960192605398123,
++      "feature_periodogram_standard_deviation_magn_i": 0.15829776136462692,
++      "feature_periodogram_standard_deviation_magn_r": 0.4312672430363883,
++      "feature_skew_flux_g": 2.388934643334213,
++      "feature_skew_flux_r": -0.033947814941133296,
++      "feature_skew_magn_R": 0.32505085437668296,
++      "feature_skew_magn_g": -2.187694487454981,
++      "feature_skew_magn_r": 0.08697880892719445,
++      "feature_standard_deviation_magn_R": 0.1286111754330765,
++      "feature_standard_deviation_magn_g": 0.17238494411562477,
++      "feature_standard_deviation_magn_i": 0.0440944960874383,
++      "feature_standard_deviation_magn_r": 0.1475830866362117,
++      "feature_stetson_k_flux_R": 0.8877031494862075,
++      "feature_stetson_k_flux_g": 0.7499825777045711,
++      "feature_stetson_k_flux_i": 0.9995273380557277,
++      "feature_stetson_k_flux_r": 0.9762698009299727,
++      "feature_stetson_k_magn_R": 0.8758146405045029,
++      "feature_stetson_k_magn_g": 0.7450168991082706,
++      "feature_stetson_k_magn_i": 0.9984553164808571,
++      "feature_stetson_k_magn_r": 0.9644424407039685,
++      "feature_villar_fit_amplitude_R": 1.3241816810227605e-05,
++      "feature_villar_fit_amplitude_g": 2.1511975641533147e-05,
++      "feature_villar_fit_baseline_R": 1.6275870375881586e-05,
++      "feature_villar_fit_baseline_g": 1.3502243386338265e-05,
++      "feature_villar_fit_fall_time_R": 0.20386108225629798,
++      "feature_villar_fit_fall_time_g": 186961.94354472062,
++      "feature_villar_fit_plateau_duration_R": 685.924051132432,
++      "feature_villar_fit_plateau_duration_g": 106.9788214745487,
++      "feature_villar_fit_plateau_rel_amplitude_R": 0.015884561385105966,
++      "feature_villar_fit_plateau_rel_amplitude_g": 0.3000968378062774,
++      "feature_villar_fit_reduced_chi2_R": 0.20291839987572075,
++      "feature_villar_fit_reduced_chi2_g": 0.2363950434827344,
++      "feature_villar_fit_reference_time_R": 58836.322017128325,
++      "feature_villar_fit_reference_time_g": 59503.56251997106,
++      "feature_villar_fit_rise_time_R": 192183.65004384427,
++      "feature_villar_fit_rise_time_g": 1195.5105273948182,
++      "feature_weighted_mean_magn_R": 20.236872611712887,
++      "feature_weighted_mean_magn_g": 20.331959400295016,
++      "feature_weighted_mean_magn_i": 21.140158720991693,
++      "feature_weighted_mean_magn_r": 20.235461809695625,
++      "is_corrected": "true",
++      "lantern_xgboost_t2.0.7_c0.95_max_score": 0.9845543503761292,
++      "lantern_xgboost_t2.0.7_c0.95_num_tagged_alerts": 2,
++      "newest_alert_id": "ztf_candidate:3516445591915010009",
++      "newest_alert_magnitude": 20.28994369506836,
++      "newest_alert_observation_time": 61270.44559030002,
++      "num_alerts": 366,
++      "num_mag_values": 37,
++      "oldest_alert_id": "ztf_candidate:1630384161915010044",
++      "oldest_alert_magnitude": 19.72410011291504,
++      "oldest_alert_observation_time": 59384.384166699834,
++      "survey": {
++        "lsst": {
++          "dia_object_id": [
++            "170604730330906635"
++          ],
++          "ss_object_id": []
++        },
++        "ztf": {
++          "field": [
++            496,
++            497
++          ],
++          "id": [
++            "ZTF21abjspyo"
++          ],
++          "rcid": [
++            19,
++            30
++          ],
++          "ssnamenr": [
++            "null"
++          ]
++        }
++      },
++      "ztf_object_id": "ZTF21abjspyo",
++      "ztf_ssnamenr": "null"
++    },
++    "ra": 347.7033712144038,
++    "tags": [
++      "lc_feature_extractor",
++      "lantern_xgboost_t2.0.7_c0.95",
++      "dimmers",
++      "extragalactic"
++    ]
++  }
++}
+diff --git a/tests/test_rubin_evidence.py b/tests/test_rubin_evidence.py
+new file mode 100644
+index 0000000..e754783
+--- /dev/null
++++ b/tests/test_rubin_evidence.py
+@@ -0,0 +1,147 @@
++import json
++from copy import deepcopy
++from pathlib import Path
++from types import SimpleNamespace
++
++import pytest
++
++from custom_code.models import RubinAlertEvidence
++from custom_code.rubin_evidence import ingest_antares_rubin_evidence
++from tom_dataproducts.models import ReducedDatum
++from trove_targets.models import Target
++
++FIXTURE = Path(__file__).parent / "data" / "antares_rubin_evidence.json"
++DB_MARK = pytest.mark.django_db(transaction=True, databases=["default", "catalogs"])
++
++
++def _as_locus(payload):
++    locus = payload["locus"]
++    alerts = [SimpleNamespace(**alert) for alert in locus["alerts"]]
++    return SimpleNamespace(
++        locus_id=locus["locus_id"],
++        ra=locus["ra"],
++        dec=locus["dec"],
++        properties=locus.get("properties", {}),
++        tags=locus.get("tags", []),
++        grav_wave_events=locus.get("grav_wave_events", []),
++        alerts=alerts,
++    )
++
++
++def _payload():
++    return json.loads(FIXTURE.read_text())
++
++
++@DB_MARK
++def test_real_negative_difference_flux_is_preserved_not_reinterpreted():
++    result = ingest_antares_rubin_evidence(_as_locus(_payload()))
++
++    assert result.rubin_alerts_seen == 2
++    assert result.snapshots_created == 2
++    evidence = RubinAlertEvidence.objects.order_by("source_record_id").first()
++    assert evidence.psf_flux is not None
++    assert evidence.psf_flux < 0
++    assert evidence.raw_alert["properties"]["lsst_diaSource_psfFlux"] == evidence.psf_flux
++
++    # Ingress is evidence-only: no target, photometry, or detection/upper-limit
++    # interpretation is created as a side effect.
++    assert Target.objects.count() == 0
++    assert ReducedDatum.objects.count() == 0
++
++
++@DB_MARK
++def test_cross_survey_history_is_not_persisted_as_rubin_evidence():
++    payload = _payload()
++    assert any(not alert["alert_id"].startswith("lsst:") for alert in payload["locus"]["alerts"])
++
++    result = ingest_antares_rubin_evidence(_as_locus(payload))
++
++    assert result.alerts_seen == 3
++    assert result.rubin_alerts_seen == 2
++    assert RubinAlertEvidence.objects.count() == 2
++    assert all(row.source_record_id.startswith("lsst:") for row in RubinAlertEvidence.objects.all())
++
++
++@DB_MARK
++def test_exact_redelivery_creates_no_new_snapshot_and_counts_delivery():
++    locus = _as_locus(_payload())
++
++    first = ingest_antares_rubin_evidence(locus)
++    second = ingest_antares_rubin_evidence(locus)
++
++    assert first.snapshots_created == 2
++    assert first.duplicate_deliveries == 0
++    assert second.snapshots_created == 0
++    assert second.duplicate_deliveries == 2
++    assert RubinAlertEvidence.objects.count() == 2
++    assert set(RubinAlertEvidence.objects.values_list("delivery_count", flat=True)) == {2}
++
++
++@DB_MARK
++def test_changed_payload_for_same_alert_id_is_preserved_as_new_snapshot():
++    payload = _payload()
++    ingest_antares_rubin_evidence(_as_locus(payload))
++
++    changed = deepcopy(payload)
++    alert = next(a for a in changed["locus"]["alerts"] if a["alert_id"].startswith("lsst:"))
++    source_record_id = alert["alert_id"]
++    original_flux = alert["properties"]["lsst_diaSource_psfFlux"]
++    alert["properties"]["lsst_diaSource_psfFlux"] = original_flux - 1.0
++
++    result = ingest_antares_rubin_evidence(_as_locus(changed))
++
++    snapshots = RubinAlertEvidence.objects.filter(source_record_id=source_record_id).order_by("received_at")
++    assert result.snapshots_created == 1
++    assert result.changed_payload_snapshots == 1
++    assert snapshots.count() == 2
++    assert {row.psf_flux for row in snapshots} == {original_flux, original_flux - 1.0}
++
++
++@DB_MARK
++def test_quality_flags_are_preserved_without_quality_decision():
++    ingest_antares_rubin_evidence(_as_locus(_payload()))
++
++    rows = list(RubinAlertEvidence.objects.all())
++    assert any(row.quality_flags.get("lsst_diaSource_isDipole") is True for row in rows)
++    assert any(row.quality_flags.get("lsst_diaSource_pixelFlags_cr") is True for row in rows)
++    assert Target.objects.count() == 0
++    assert ReducedDatum.objects.count() == 0
++
++
++@DB_MARK
++def test_missing_alert_id_gets_deterministic_non_survey_record_id():
++    payload = _payload()
++    rubin = next(a for a in payload["locus"]["alerts"] if a["alert_id"].startswith("lsst:"))
++    payload["locus"]["alerts"] = [rubin]
++    payload["locus"]["alerts"][0]["alert_id"] = None
++
++    first = ingest_antares_rubin_evidence(_as_locus(payload))
++    second = ingest_antares_rubin_evidence(_as_locus(payload))
++
++    row = RubinAlertEvidence.objects.get()
++    assert row.source_record_id.startswith("UNIDENTIFIED:")
++    assert first.snapshots_created == 1
++    assert second.snapshots_created == 0
++    assert second.duplicate_deliveries == 1
++
++
++@DB_MARK
++def test_changed_locus_broker_context_is_preserved_as_new_snapshot():
++    payload = _payload()
++    rubin = next(a for a in payload["locus"]["alerts"] if a["alert_id"].startswith("lsst:"))
++    payload["locus"]["alerts"] = [rubin]
++    ingest_antares_rubin_evidence(_as_locus(payload))
++
++    changed = deepcopy(payload)
++    changed["locus"]["grav_wave_events"] = [
++        {"gracedb_id": "SYNTHETIC-CONTEXT-CHANGE", "contour_level": 0.95}
++    ]
++    result = ingest_antares_rubin_evidence(_as_locus(changed))
++
++    rows = RubinAlertEvidence.objects.filter(source_record_id=rubin["alert_id"])
++    assert result.snapshots_created == 1
++    assert result.changed_payload_snapshots == 1
++    assert rows.count() == 2
++    assert {bool(row.broker_context["grav_wave_events"]) for row in rows} == {False, True}
++    # The alert payload itself was not rewritten to smuggle locus context into it.
++    assert len({json.dumps(row.raw_alert, sort_keys=True) for row in rows}) == 1
