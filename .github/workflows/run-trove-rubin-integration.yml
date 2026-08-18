@@ -1,8 +1,8 @@
-# rerun: live-schema and Django initialization fixes
+# internal diagnostic trigger
 name: TROVE Rubin integration validation
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
       - '.github/workflows/run-trove-rubin-integration.yml'
