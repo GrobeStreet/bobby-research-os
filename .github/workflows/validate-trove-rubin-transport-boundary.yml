@@ -18,9 +18,11 @@ jobs:
       - name: Install exact transport dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install 'antares-client==1.14.0' 'tom-alertstreams==1.2.1'
+          python -m pip install 'django==5.2.13' 'antares-client==1.14.0' 'tom-alertstreams==1.2.1'
       - name: Run fail-closed hostile transport probe
+        shell: bash
         run: |
+          set -o pipefail
           python projects/trove-rubin-bridge/transport_boundary_review/probe_transport_boundary.py | tee /tmp/transport-probe.txt
       - name: Require blocked-current-surface verdict
         run: |
