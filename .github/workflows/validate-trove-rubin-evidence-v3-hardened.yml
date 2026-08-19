@@ -1,4 +1,4 @@
-name: Validate TROVE Rubin evidence v3 strict
+name: Validate TROVE Rubin evidence protocol v3
 
 on:
   pull_request:
@@ -41,7 +41,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Build strict patch, validate, freeze, and independently verify exact file
+      - name: Build protocol v3, validate, freeze, and independently verify exact file
         shell: bash
         env:
           PGPASSWORD: postgres
@@ -128,9 +128,9 @@ jobs:
           PY
           fi
 
-          echo '=== strict builder only ===' | tee -a "$OUT"
+          echo '=== protocol v3 builder only ===' | tee -a "$OUT"
           if [ "$INSTALL_STATUS" -eq 0 ] && [ "$CLEAN_SOURCE_STATUS" -eq 0 ]; then
-            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" python "$OUTDIR/run_hardened_v3_strict_final.py" 2>&1 | tee -a "$OUT"
+            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" python "$OUTDIR/run_hardened_v3_protocol_v3.py" 2>&1 | tee -a "$OUT"
             BUILD_STATUS=${PIPESTATUS[0]}
           else
             BUILD_STATUS=99
@@ -179,7 +179,6 @@ jobs:
             POSTGRES_FOCUSED=99
           fi
 
-          # Failed validation must never publish or overwrite canonical artifacts.
           if [ "$CLEAN_SOURCE_STATUS" -ne 0 ] || [ "$INSTALL_STATUS" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$APPLY_CHECK_STATUS" -ne 0 ] || [ "$APPLY_STATUS" -ne 0 ] || [ "$CHECK_STATUS" -ne 0 ] || [ "$MIGRATION_STATUS" -ne 0 ] || [ "$SQLITE_FOCUSED" -ne 0 ] || [ "$SQLITE_FULL" -ne 0 ] || [ "$POSTGRES_FOCUSED" -ne 0 ]; then
             echo 'PRE_FREEZE_VALIDATION_FAILED: refusing to publish' | tee -a "$OUT"
             exit 1
@@ -202,7 +201,8 @@ jobs:
             "trove_commit": "$TROVE_SHA",
             "bridge_commit_before_results": "$BRIDGE_SHA",
             "tom_nonlocalizedevents_reproduction_pin": "$TNLE_SHA",
-            "canonicalization_protocol": "alert-v2/context-v2",
+            "canonicalization_protocol": "alert-v3/context-v3/typed-normal-form-v1",
+            "transport_identity_protocol": "broker+transport_namespace+delivery-or-kafka-position-v1",
             "patch_sha256": "$PATCH_SHA"
           }
           EOF
@@ -219,7 +219,7 @@ jobs:
           git -C bridge config user.name 'github-actions[bot]'
           git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git -C bridge add projects/trove-rubin-bridge/upstream_patch_v3/
-          git -C bridge commit -m 'Freeze strict v2 Rubin evidence patch' || true
+          git -C bridge commit -m 'Freeze narrow v3 Rubin evidence protocol patch' || true
           git -C bridge push origin HEAD:project/trove-rubin-bridge
           PUBLISH_STATUS=$?
           if [ "$PUBLISH_STATUS" -ne 0 ]; then exit 1; fi
