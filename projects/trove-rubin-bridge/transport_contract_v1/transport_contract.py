@@ -62,7 +62,18 @@ class TransportPosition:
             raise ValueError("offset must be >= 0")
 
     @property
-    def stream_key(self) -> tuple[str, str, str, int]:
+    def message_key(self) -> tuple[str, str, int, int]:
+        """Kafka message identity, independent of which consumer group sees it."""
+        return (
+            self.transport_namespace,
+            self.topic,
+            self.partition,
+            self.offset,
+        )
+
+    @property
+    def progress_key(self) -> tuple[str, str, str, int]:
+        """Consumer progress identity; this is where consumer_group belongs."""
         return (
             self.transport_namespace,
             self.consumer_group,
@@ -71,8 +82,10 @@ class TransportPosition:
         )
 
     @property
-    def delivery_key(self) -> tuple[str, str, str, int, int]:
-        return (*self.stream_key, self.offset)
+    def delivery_key(self) -> tuple[str, str, int, int]:
+        # Compatibility name used by the harness stores/tests. A durable delivery
+        # is one Kafka message, not one message multiplied by consumer groups.
+        return self.message_key
 
 
 @dataclass(frozen=True)
@@ -98,7 +111,7 @@ class RubinTriggerEnvelope:
 class DurableReceipt:
     durable: bool
     created: bool
-    delivery_key: tuple[str, str, str, int, int]
+    delivery_key: tuple[str, str, int, int]
 
 
 class SyntheticEnvelopeCodec:
@@ -164,15 +177,15 @@ class DurableEvidenceStore:
     """Deterministic stand-in for the already-validated v3 evidence boundary."""
 
     def __init__(self, audit: list[str] | None = None) -> None:
-        self.rows: dict[tuple[str, str, str, int, int], RubinTriggerEnvelope] = {}
-        self.transient_once: set[tuple[str, str, str, int, int]] = set()
-        self.permanent: set[tuple[str, str, str, int, int]] = set()
-        self.nondurable: set[tuple[str, str, str, int, int]] = set()
-        self._transient_seen: set[tuple[str, str, str, int, int]] = set()
+        self.rows: dict[tuple[str, str, int, int], RubinTriggerEnvelope] = {}
+        self.transient_once: set[tuple[str, str, int, int]] = set()
+        self.permanent: set[tuple[str, str, int, int]] = set()
+        self.nondurable: set[tuple[str, str, int, int]] = set()
+        self._transient_seen: set[tuple[str, str, int, int]] = set()
         self.audit = audit if audit is not None else []
 
     def persist(self, envelope: RubinTriggerEnvelope) -> DurableReceipt:
-        key = envelope.position.delivery_key
+        key = envelope.position.message_key
         if key in self.transient_once and key not in self._transient_seen:
             self._transient_seen.add(key)
             self.audit.append(f"evidence:transient:{key}")
@@ -186,7 +199,14 @@ class DurableEvidenceStore:
 
         existing = self.rows.get(key)
         if existing is not None:
-            if existing != envelope:
+            # Consumer group is progress state, not evidence identity. Compare the
+            # scientific/broker content and Kafka message coordinates only.
+            if (
+                existing.trigger_alert != envelope.trigger_alert
+                or existing.locus_context != envelope.locus_context
+                or existing.broker_delivery_id != envelope.broker_delivery_id
+                or existing.position.message_key != envelope.position.message_key
+            ):
                 raise PermanentDeliveryError(
                     "transport identity was reused for different trigger evidence"
                 )
@@ -212,14 +232,14 @@ class DurableQuarantineStore:
     """Append/idempotent stand-in for a durable poison-message quarantine."""
 
     def __init__(self, audit: list[str] | None = None) -> None:
-        self.rows: dict[tuple[str, str, str, int, int], QuarantineRecord] = {}
-        self.transient_once: set[tuple[str, str, str, int, int]] = set()
-        self.nondurable: set[tuple[str, str, str, int, int]] = set()
-        self._transient_seen: set[tuple[str, str, str, int, int]] = set()
+        self.rows: dict[tuple[str, str, int, int], QuarantineRecord] = {}
+        self.transient_once: set[tuple[str, str, int, int]] = set()
+        self.nondurable: set[tuple[str, str, int, int]] = set()
+        self._transient_seen: set[tuple[str, str, int, int]] = set()
         self.audit = audit if audit is not None else []
 
     def persist(self, raw: RawDelivery, error: PermanentDeliveryError) -> DurableReceipt:
-        key = raw.position.delivery_key
+        key = raw.position.message_key
         if key in self.transient_once and key not in self._transient_seen:
             self._transient_seen.add(key)
             self.audit.append(f"quarantine:transient:{key}")
@@ -238,15 +258,13 @@ class DurableQuarantineStore:
         )
         existing = self.rows.get(key)
         if existing is not None:
-            # Error text can gain detail across deployments; transport identity and
-            # original bytes are what must remain stable for safe replay.
             if (
-                existing.position != candidate.position
+                existing.position.message_key != candidate.position.message_key
                 or existing.payload != candidate.payload
                 or existing.broker_delivery_id != candidate.broker_delivery_id
             ):
                 raise InvariantViolation(
-                    "quarantine delivery identity was reused for different raw bytes"
+                    "quarantine message identity was reused for different raw bytes"
                 )
             self.audit.append(f"quarantine:durable-replay:{key}")
             return DurableReceipt(True, False, key)
@@ -359,19 +377,20 @@ class ConsumerSession:
         partition: int,
     ) -> None:
         self.broker = broker
-        self.stream_key = (transport_namespace, consumer_group, topic, partition)
+        self.progress_key = (transport_namespace, consumer_group, topic, partition)
         log_key = (transport_namespace, topic, partition)
         offsets = sorted(broker.records.get(log_key, {}))
-        if self.stream_key in broker.committed_next:
-            self.cursor = broker.committed_next[self.stream_key]
+        if self.progress_key in broker.committed_next:
+            self.cursor = broker.committed_next[self.progress_key]
         else:
             self.cursor = offsets[0] if offsets else 0
         self.log_key = log_key
+        self.consumer_group = consumer_group
         self.in_flight: RawDelivery | None = None
 
     @property
     def committed_next_offset(self) -> int | None:
-        return self.broker.committed_next.get(self.stream_key)
+        return self.broker.committed_next.get(self.progress_key)
 
     def poll(self) -> RawDelivery | None:
         if self.in_flight is not None:
@@ -381,20 +400,30 @@ class ConsumerSession:
         if not available:
             return None
         offset = min(available)
-        raw = bucket[offset]
-        expected_namespace, expected_group, expected_topic, expected_partition = self.stream_key
+        stored = bucket[offset]
+        expected_namespace, expected_topic, expected_partition = self.log_key
         if (
-            raw.position.transport_namespace != expected_namespace
-            or raw.position.consumer_group != expected_group
-            or raw.position.topic != expected_topic
-            or raw.position.partition != expected_partition
+            stored.position.transport_namespace != expected_namespace
+            or stored.position.topic != expected_topic
+            or stored.position.partition != expected_partition
         ):
-            # The synthetic broker stores one raw delivery per group so this is a
-            # harness-construction error, not a production behavior.
             raise InvariantViolation("delivery coordinates do not match consumer session")
+        # Kafka message identity is independent of consumer group. Attach this
+        # session's group to progress/ack state without altering message identity.
+        raw = RawDelivery(
+            position=TransportPosition(
+                stored.position.transport_namespace,
+                self.consumer_group,
+                stored.position.topic,
+                stored.position.partition,
+                stored.position.offset,
+            ),
+            payload=stored.payload,
+            broker_delivery_id=stored.broker_delivery_id,
+        )
         self.in_flight = raw
         self.cursor = offset + 1
-        self.broker.audit.append(f"poll:{raw.position.delivery_key}")
+        self.broker.audit.append(f"poll:{raw.position.message_key}:{self.consumer_group}")
         return raw
 
     def acknowledge(self, position: TransportPosition) -> None:
@@ -403,11 +432,11 @@ class ConsumerSession:
         if position != self.in_flight.position:
             raise InvariantViolation("cannot acknowledge a different delivery")
         next_offset = position.offset + 1
-        current = self.broker.committed_next.get(self.stream_key)
+        current = self.broker.committed_next.get(self.progress_key)
         if current is not None and next_offset < current:
             raise InvariantViolation("acknowledgement would move committed offset backwards")
-        self.broker.committed_next[self.stream_key] = next_offset
-        self.broker.audit.append(f"ack:{position.delivery_key}")
+        self.broker.committed_next[self.progress_key] = next_offset
+        self.broker.audit.append(f"ack:{position.message_key}:{self.consumer_group}")
         self.in_flight = None
 
 
