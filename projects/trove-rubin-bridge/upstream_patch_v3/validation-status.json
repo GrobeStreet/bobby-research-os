@@ -9,6 +9,6 @@
   "sqlite_full_status": 0,
   "postgres_focused_status": 0,
   "trove_commit": "9f2309890b248d78fc470632c7ee5d9c8c4739b6",
-  "bridge_commit_before_results": "8b23e4310c0eba3c7a85fb920946438c047dfe80",
+  "bridge_commit_before_results": "3f24272b3240e6ee70fe34b050f2b90f3301784c",
   "patch_sha256": "c29511ba6ac6389aba4d21a5746489b9cee4df617a76870ae122035fa75071c2"
 }
