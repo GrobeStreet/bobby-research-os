@@ -4,11 +4,11 @@
   "apply_check_status": 0,
   "apply_status": 0,
   "django_check_status": 0,
-  "migration_check_status": 1,
+  "migration_check_status": 0,
   "sqlite_focused_status": 0,
   "sqlite_full_status": 0,
   "postgres_focused_status": 0,
   "trove_commit": "9f2309890b248d78fc470632c7ee5d9c8c4739b6",
-  "bridge_commit_before_results": "d5cf21aec1f8b8105c9d34920b509410cca4deb6",
-  "patch_sha256": "50f62c6f4a97485732f3504f64d3a93ffce3c3b3f997a64c4fd11eed418612b6"
+  "bridge_commit_before_results": "8b23e4310c0eba3c7a85fb920946438c047dfe80",
+  "patch_sha256": "3cdb9fae43b02a0e3c072226a0fd7e731e937ef3b59c317ea6eb08718ddb9066"
 }
