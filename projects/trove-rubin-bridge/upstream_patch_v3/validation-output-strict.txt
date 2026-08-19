@@ -1,17 +1,17 @@
 === clean-source identity ===
 trove_commit=9f2309890b248d78fc470632c7ee5d9c8c4739b6
-bridge_commit=b001cbcd70d3ba2d820482434a932d7585864bc5
-Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages (26.2.1)
+bridge_commit=0b1521be5475906d2700c0d63a49a64522841183
+Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages (26.2.1)
 Collecting wheel
   Downloading wheel-0.48.0-py3-none-any.whl.metadata (2.3 kB)
-Requirement already satisfied: setuptools in /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages (79.0.1)
+Requirement already satisfied: setuptools in /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages (79.0.1)
 Collecting setuptools
   Downloading setuptools-84.0.0-py3-none-any.whl.metadata (6.6 kB)
 Collecting packaging>=24.0 (from wheel)
   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
 Downloading wheel-0.48.0-py3-none-any.whl (33 kB)
 Downloading setuptools-84.0.0-py3-none-any.whl (818 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 818.2/818.2 kB 30.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 818.2/818.2 kB 47.3 MB/s  0:00:00
 Downloading packaging-26.3-py3-none-any.whl (129 kB)
 Installing collected packages: setuptools, packaging, wheel
   Attempting uninstall: setuptools
@@ -21,8 +21,8 @@ Installing collected packages: setuptools, packaging, wheel
 
 Successfully installed packaging-26.3 setuptools-84.0.0 wheel-0.48.0
 Collecting candidate_vetting @ git+https://github.com/astro-trove/candidate_vetting.git@v0.4.0-alpha (from -r /tmp/trove-repro-requirements.txt (line 41))
-  Cloning https://github.com/astro-trove/candidate_vetting.git (to revision v0.4.0-alpha) to /tmp/pip-install-37zyc10q/candidate-vetting_a7f93ba1b1494be5bdee029455329b9d
-  Running command git clone --filter=blob:none --quiet https://github.com/astro-trove/candidate_vetting.git /tmp/pip-install-37zyc10q/candidate-vetting_a7f93ba1b1494be5bdee029455329b9d
+  Cloning https://github.com/astro-trove/candidate_vetting.git (to revision v0.4.0-alpha) to /tmp/pip-install-tgfgotpw/candidate-vetting_cdc0e2901f114efbb43b6ba080a7e0d9
+  Running command git clone --filter=blob:none --quiet https://github.com/astro-trove/candidate_vetting.git /tmp/pip-install-tgfgotpw/candidate-vetting_cdc0e2901f114efbb43b6ba080a7e0d9
   Running command git checkout -q 2c783442cc0f763d9fbf20bcbadd6e99f0940e42
   Resolved https://github.com/astro-trove/candidate_vetting.git to commit 2c783442cc0f763d9fbf20bcbadd6e99f0940e42
   Installing build dependencies: started
@@ -32,8 +32,8 @@ Collecting candidate_vetting @ git+https://github.com/astro-trove/candidate_vett
   Preparing metadata (pyproject.toml): started
   Preparing metadata (pyproject.toml): finished with status 'done'
 Collecting tomtoolkit @ git+https://github.com/noahfranz13/tom_base.git@v2.32.3 (from -r /tmp/trove-repro-requirements.txt (line 45))
-  Cloning https://github.com/noahfranz13/tom_base.git (to revision v2.32.3) to /tmp/pip-install-37zyc10q/tomtoolkit_3ccfd72c785e4d8e89b9ee8911f01676
-  Running command git clone --filter=blob:none --quiet https://github.com/noahfranz13/tom_base.git /tmp/pip-install-37zyc10q/tomtoolkit_3ccfd72c785e4d8e89b9ee8911f01676
+  Cloning https://github.com/noahfranz13/tom_base.git (to revision v2.32.3) to /tmp/pip-install-tgfgotpw/tomtoolkit_720dd3f209ae42fab3343fb7763fd8ad
+  Running command git clone --filter=blob:none --quiet https://github.com/noahfranz13/tom_base.git /tmp/pip-install-tgfgotpw/tomtoolkit_720dd3f209ae42fab3343fb7763fd8ad
   Running command git checkout -q 6991cbae3756724a74ca6c72ead497cee6d0cf62
   Resolved https://github.com/noahfranz13/tom_base.git to commit 6991cbae3756724a74ca6c72ead497cee6d0cf62
   Installing build dependencies: started
@@ -43,8 +43,8 @@ Collecting tomtoolkit @ git+https://github.com/noahfranz13/tom_base.git@v2.32.3 
   Preparing metadata (pyproject.toml): started
   Preparing metadata (pyproject.toml): finished with status 'done'
 Collecting tom-nonlocalizedevents @ git+https://github.com/TOMToolkit/tom_nonlocalizedevents.git@d877e0281c6c826d753b19442a7452dbaafb00c5 (from -r /tmp/trove-repro-requirements.txt (line 47))
-  Cloning https://github.com/TOMToolkit/tom_nonlocalizedevents.git (to revision d877e0281c6c826d753b19442a7452dbaafb00c5) to /tmp/pip-install-37zyc10q/tom-nonlocalizedevents_7a55ad228ee34599ba7e83a2aeba81e5
-  Running command git clone --filter=blob:none --quiet https://github.com/TOMToolkit/tom_nonlocalizedevents.git /tmp/pip-install-37zyc10q/tom-nonlocalizedevents_7a55ad228ee34599ba7e83a2aeba81e5
+  Cloning https://github.com/TOMToolkit/tom_nonlocalizedevents.git (to revision d877e0281c6c826d753b19442a7452dbaafb00c5) to /tmp/pip-install-tgfgotpw/tom-nonlocalizedevents_52e4f8e14e7d4691ba6c56127318e46c
+  Running command git clone --filter=blob:none --quiet https://github.com/TOMToolkit/tom_nonlocalizedevents.git /tmp/pip-install-tgfgotpw/tom-nonlocalizedevents_52e4f8e14e7d4691ba6c56127318e46c
   Running command git rev-parse -q --verify 'd877e0281c6c826d753b19442a7452dbaafb00c5^{commit}'
   d877e0281c6c826d753b19442a7452dbaafb00c5
   Running command git checkout -q d877e0281c6c826d753b19442a7452dbaafb00c5
@@ -56,8 +56,8 @@ Collecting tom-nonlocalizedevents @ git+https://github.com/TOMToolkit/tom_nonloc
   Preparing metadata (pyproject.toml): started
   Preparing metadata (pyproject.toml): finished with status 'done'
 Collecting trove_mpc @ git+https://github.com/astro-trove/trove-mpc.git (from -r /tmp/trove-repro-requirements.txt (line 49))
-  Cloning https://github.com/astro-trove/trove-mpc.git to /tmp/pip-install-37zyc10q/trove-mpc_bb798d9a14134cdfb78ee20aa8aa9349
-  Running command git clone --filter=blob:none --quiet https://github.com/astro-trove/trove-mpc.git /tmp/pip-install-37zyc10q/trove-mpc_bb798d9a14134cdfb78ee20aa8aa9349
+  Cloning https://github.com/astro-trove/trove-mpc.git to /tmp/pip-install-tgfgotpw/trove-mpc_d824e55540a2460e82df4e798e376580
+  Running command git clone --filter=blob:none --quiet https://github.com/astro-trove/trove-mpc.git /tmp/pip-install-tgfgotpw/trove-mpc_d824e55540a2460e82df4e798e376580
   Resolved https://github.com/astro-trove/trove-mpc.git to commit 078adff3bd18c003687bbe0972a25c36953b0934
   Installing build dependencies: started
   Installing build dependencies: finished with status 'done'
@@ -203,7 +203,7 @@ Collecting astropy-iers-data>=0.2024.10.28.0.34.7 (from astropy==6.1.7->-r /tmp/
   Downloading astropy_iers_data-0.2026.8.18.14.22.31-py3-none-any.whl.metadata (3.4 kB)
 Collecting PyYAML>=3.13 (from astropy==6.1.7->-r /tmp/trove-repro-requirements.txt (line 3))
   Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
-Requirement already satisfied: packaging>=19.0 in /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages (from astropy==6.1.7->-r /tmp/trove-repro-requirements.txt (line 3)) (26.3)
+Requirement already satisfied: packaging>=19.0 in /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages (from astropy==6.1.7->-r /tmp/trove-repro-requirements.txt (line 3)) (26.3)
 Collecting html5lib>=0.999 (from astroquery==0.4.11->-r /tmp/trove-repro-requirements.txt (line 4))
   Downloading html5lib-1.1-py2.py3-none-any.whl.metadata (16 kB)
 Collecting keyring>=15.0 (from astroquery==0.4.11->-r /tmp/trove-repro-requirements.txt (line 4))
@@ -516,11 +516,11 @@ Collecting lockfile>=0.10 (from python-daemon->fundamentals->candidate_vetting @
 Collecting asn1crypto>=1.5.1 (from scramp->hop-client<1.0,>=0.10->tom-nonlocalizedevents @ git+https://github.com/TOMToolkit/tom_nonlocalizedevents.git@d877e0281c6c826d753b19442a7452dbaafb00c5->-r /tmp/trove-repro-requirements.txt (line 47))
   Downloading asn1crypto-1.5.1-py2.py3-none-any.whl.metadata (13 kB)
 Downloading astropy-6.1.7-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (10.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.2/10.2 MB 92.4 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.2/10.2 MB 75.3 MB/s  0:00:00
 Downloading astroquery-0.4.11-py3-none-any.whl (11.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.1/11.1 MB 74.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.1/11.1 MB 132.2 MB/s  0:00:00
 Downloading django-5.2.13-py3-none-any.whl (8.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.3/8.3 MB 83.4 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.3/8.3 MB 142.8 MB/s  0:00:00
 Downloading django_bootstrap4-24.4-py3-none-any.whl (25 kB)
 Downloading django_contrib_comments-2.2.0-py3-none-any.whl (416 kB)
 Downloading django_crispy_forms-2.4-py3-none-any.whl (31 kB)
@@ -533,64 +533,64 @@ Downloading django_tables2-3.0.0-py3-none-any.whl (96 kB)
 Downloading django_tasks-0.6.1-py3-none-any.whl (36 kB)
 Downloading django_webpack_loader-3.2.1-py2.py3-none-any.whl (20 kB)
 Downloading djangorestframework-3.16.0-py3-none-any.whl (1.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 3.9 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 170.9 MB/s  0:00:00
 Downloading healpix_alchemy-1.1.0-py3-none-any.whl (11 kB)
 Downloading ligo_skymap-2.4.0-cp310-abi3-manylinux_2_28_x86_64.whl (21.7 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 21.7/21.7 MB 66.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 21.7/21.7 MB 82.7 MB/s  0:00:00
 Downloading numpy-1.26.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (18.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18.3/18.3 MB 101.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18.3/18.3 MB 125.4 MB/s  0:00:00
 Downloading plotly-5.24.1-py3-none-any.whl (19.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 19.1/19.1 MB 77.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 19.1/19.1 MB 93.8 MB/s  0:00:00
 Downloading psycopg2_binary-2.9.12-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.3/4.3 MB 52.9 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.3/4.3 MB 138.8 MB/s  0:00:00
 Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
 Downloading requests-2.34.2-py3-none-any.whl (73 kB)
 Downloading specutils-1.20.3-py3-none-any.whl (4.9 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.9/4.9 MB 14.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.9/4.9 MB 108.9 MB/s  0:00:00
 Downloading sqlalchemy-2.0.50-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 28.0 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 242.4 MB/s  0:00:00
 Downloading setuptools-81.0.0-py3-none-any.whl (1.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 224.3 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 182.3 MB/s  0:00:00
 Downloading django_autocomplete_light-4.0.0-py3-none-any.whl (117 kB)
 Downloading django_ninja-1.6.2-py3-none-any.whl (2.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.4/2.4 MB 17.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.4/2.4 MB 83.6 MB/s  0:00:00
 Downloading django_stubs_ext-5.2.1-py3-none-any.whl (9.2 kB)
 Downloading dustmaps-1.0.14-py3-none-any.whl (754 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 754.8/754.8 kB 69.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 754.8/754.8 kB 177.3 MB/s  0:00:00
 Downloading fitsio-1.3.0-cp311-cp311-manylinux_2_28_x86_64.whl (802 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 802.2/802.2 kB 19.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 802.2/802.2 kB 99.0 MB/s  0:00:00
 Downloading healpy-1.19.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (8.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.2/8.2 MB 59.4 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.2/8.2 MB 95.1 MB/s  0:00:00
 Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 120.2 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 94.0 MB/s  0:00:00
 Downloading matplotlib-3.10.9-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (8.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.8/8.8 MB 83.3 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.8/8.8 MB 155.3 MB/s  0:00:00
 Downloading nbsphinx-0.9.8-py3-none-any.whl (31 kB)
 Downloading pandas-3.0.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (11.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.3/11.3 MB 74.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.3/11.3 MB 159.0 MB/s  0:00:00
 Downloading paramiko-5.0.0-py3-none-any.whl (208 kB)
 Downloading scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.3/35.3 MB 133.4 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.3/35.3 MB 152.3 MB/s  0:00:00
 Downloading skypatrol-0.6.21-py3-none-any.whl (27 kB)
 Downloading slack_sdk-3.42.0-py2.py3-none-any.whl (315 kB)
 Downloading sphinx-9.0.4-py3-none-any.whl (3.9 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.9/3.9 MB 17.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.9/3.9 MB 165.0 MB/s  0:00:00
 Downloading sphinx_book_theme-1.2.0-py3-none-any.whl (455 kB)
 Downloading sphinx_design-0.7.0-py3-none-any.whl (2.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 9.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 137.0 MB/s  0:00:00
 Downloading tom_alertstreams-1.2.1-py3-none-any.whl (15 kB)
 Downloading tom_registration-1.0.5-py3-none-any.whl (31 kB)
 Downloading whitenoise-6.12.0-py3-none-any.whl (20 kB)
 Downloading pydata_sphinx_theme-0.16.1-py3-none-any.whl (6.7 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.7/6.7 MB 109.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.7/6.7 MB 144.2 MB/s  0:00:00
 Downloading astropy_healpix-1.1.3-cp310-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (191 kB)
 Downloading beautifulsoup4-4.15.0-py3-none-any.whl (109 kB)
 Downloading charset_normalizer-3.5.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (262 kB)
 Downloading crispy_bootstrap4-2024.10-py3-none-any.whl (23 kB)
 Downloading cryptography-47.0.0-cp311-abi3-manylinux_2_34_x86_64.whl (4.7 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.7/4.7 MB 165.2 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.7/4.7 MB 61.8 MB/s  0:00:00
 Downloading docutils-0.22.4-py3-none-any.whl (633 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 633.2/633.2 kB 128.4 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 633.2/633.2 kB 153.7 MB/s  0:00:00
 Downloading fits2image-0.4.11-py3-none-any.whl (10 kB)
 Downloading gcn_kafka-0.3.4-py3-none-any.whl (9.3 kB)
 Downloading gracedb_sdk-0.2.1-py3-none-any.whl (27 kB)
@@ -599,12 +599,12 @@ Downloading idna-3.19-py3-none-any.whl (68 kB)
 Downloading importlib_resources-6.4.5-py3-none-any.whl (36 kB)
 Downloading markdown-3.10.3-py3-none-any.whl (110 kB)
 Downloading mocpy-0.20.0-cp311-cp311-manylinux_2_28_x86_64.whl (1.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 68.3 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 137.8 MB/s  0:00:00
 Downloading pillow-12.3.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6.9 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.9/6.9 MB 77.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.9/6.9 MB 154.2 MB/s  0:00:00
 Downloading pydantic-2.13.4-py3-none-any.whl (472 kB)
 Downloading pydantic_core-2.46.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 292.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 355.8 MB/s  0:00:00
 Downloading urllib3-2.7.0-py3-none-any.whl (131 kB)
 Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
 Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
@@ -613,30 +613,30 @@ Downloading adc_streaming-2.6.0-py3-none-any.whl (15 kB)
 Downloading alabaster-1.0.0-py3-none-any.whl (13 kB)
 Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
 Downloading asdf-5.3.1-py3-none-any.whl (971 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 971.7/971.7 kB 215.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 971.7/971.7 kB 167.2 MB/s  0:00:00
 Downloading asdf_astropy-0.11.0-py3-none-any.whl (110 kB)
 Downloading asdf_coordinates_schemas-0.5.1-py3-none-any.whl (49 kB)
 Downloading asdf_standard-1.5.0-py3-none-any.whl (105 kB)
 Downloading asdf_transform_schemas-0.6.0-py3-none-any.whl (350 kB)
 Downloading asgiref-3.12.1-py3-none-any.whl (25 kB)
 Downloading astropy_iers_data-0.2026.8.18.14.22.31-py3-none-any.whl (2.0 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 111.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 248.9 MB/s  0:00:00
 Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
 Downloading babel-2.18.0-py3-none-any.whl (10.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.2/10.2 MB 69.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.2/10.2 MB 138.4 MB/s  0:00:00
 Downloading bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl (278 kB)
 Downloading certifi-2026.7.22-py3-none-any.whl (136 kB)
 Downloading cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (217 kB)
 Downloading confluent_kafka-2.15.0-cp311-cp311-manylinux_2_28_x86_64.whl (4.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.8/4.8 MB 70.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.8/4.8 MB 128.1 MB/s  0:00:00
 Downloading contourpy-1.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (355 kB)
 Downloading cycler-0.12.1-py3-none-any.whl (8.3 kB)
 Downloading fastavro-1.12.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.4/3.4 MB 112.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.4/3.4 MB 253.7 MB/s  0:00:00
 Downloading fonttools-4.63.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 164.8 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 198.3 MB/s  0:00:00
 Downloading greenlet-3.5.5-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (624 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 624.6/624.6 kB 124.9 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 624.6/624.6 kB 127.5 MB/s  0:00:00
 Downloading gwcs-1.0.3-py3-none-any.whl (364 kB)
 Downloading asdf_wcs_schemas-0.5.0-py3-none-any.whl (59 kB)
 Downloading html5lib-1.1-py2.py3-none-any.whl (112 kB)
@@ -647,17 +647,17 @@ Downloading invoke-3.0.3-py3-none-any.whl (160 kB)
 Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
 Downloading jmespath-1.1.0-py3-none-any.whl (20 kB)
 Downloading kete-3.2.2-cp39-abi3-manylinux_2_35_x86_64.whl (12.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.2/12.2 MB 87.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.2/12.2 MB 83.9 MB/s  0:00:00
 Downloading matplotlib_label_lines-0.8.0-py3-none-any.whl (690 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 690.2/690.2 kB 144.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 690.2/690.2 kB 147.9 MB/s  0:00:00
 Downloading keyring-25.7.0-py3-none-any.whl (39 kB)
 Downloading jeepney-0.9.0-py3-none-any.whl (49 kB)
 Downloading kiwisolver-1.5.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (1.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 240.2 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 281.9 MB/s  0:00:00
 Downloading lalsuite-7.26.15-cp311-cp311-manylinux_2_28_x86_64.whl (40.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.1/40.1 MB 72.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.1/40.1 MB 115.0 MB/s  0:00:00
 Downloading ligo_gracedb-2.15.7-py3-none-any.whl (2.5 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.5/2.5 MB 93.8 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.5/2.5 MB 146.8 MB/s  0:00:00
 Downloading igwn_auth_utils-1.4.0-py3-none-any.whl (34 kB)
 Using cached markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
 Downloading nbconvert-7.17.1-py3-none-any.whl (261 kB)
@@ -674,23 +674,23 @@ Downloading ndcube-2.4.1-py3-none-any.whl (173 kB)
 Downloading pandocfilters-1.5.1-py2.py3-none-any.whl (8.7 kB)
 Downloading platformdirs-4.11.3-py3-none-any.whl (23 kB)
 Downloading pyerfa-2.0.1.5-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (738 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 738.7/738.7 kB 130.0 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 738.7/738.7 kB 55.8 MB/s  0:00:00
 Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 5.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 247.5 MB/s  0:00:00
 Downloading pynacl-1.6.2-cp38-abi3-manylinux_2_34_x86_64.whl (1.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 123.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 291.4 MB/s  0:00:00
 Downloading pyparsing-3.3.2-py3-none-any.whl (122 kB)
 Downloading pyvo-1.9.1-py3-none-any.whl (1.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 155.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 165.8 MB/s  0:00:00
 Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (806 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 806.6/806.6 kB 3.3 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 806.6/806.6 kB 172.0 MB/s  0:00:00
 Downloading pyzmq-27.1.0-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (857 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 857.0/857.0 kB 182.7 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 857.0/857.0 kB 198.8 MB/s  0:00:00
 Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
 Downloading reproject-0.21.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 206.0 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 89.5 MB/s  0:00:00
 Downloading dask-2026.7.1-py3-none-any.whl (1.5 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.5/1.5 MB 133.2 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.5/1.5 MB 200.7 MB/s  0:00:00
 Downloading click-8.4.2-py3-none-any.whl (119 kB)
 Downloading cloudpickle-3.1.2-py3-none-any.whl (22 kB)
 Downloading dask_image-2026.5.0-py3-none-any.whl (43 kB)
@@ -706,7 +706,7 @@ Downloading pyjwt-2.13.0-py3-none-any.whl (31 kB)
 Downloading secretstorage-3.5.0-py3-none-any.whl (15 kB)
 Downloading semantic_version-2.10.0-py2.py3-none-any.whl (15 kB)
 Downloading shapely-2.1.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 164.3 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 107.4 MB/s  0:00:00
 Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
 Downloading slicerator-1.1.0-py3-none-any.whl (10 kB)
 Downloading snowballstemmer-3.1.1-py3-none-any.whl (104 kB)
@@ -734,10 +734,10 @@ Downloading zarr-3.1.5-py3-none-any.whl (284 kB)
 Downloading donfig-0.8.1.post1-py3-none-any.whl (21 kB)
 Downloading google_crc32c-1.8.0-cp311-cp311-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl (33 kB)
 Downloading numcodecs-0.16.5-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (9.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.1/9.1 MB 61.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.1/9.1 MB 76.8 MB/s  0:00:00
 Downloading zipp-4.1.0-py3-none-any.whl (10 kB)
 Downloading accessible_pygments-0.0.5-py3-none-any.whl (1.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 63.0 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 186.8 MB/s  0:00:00
 Downloading antares_client-1.14.0-py3-none-any.whl (19 kB)
 Downloading marshmallow-3.26.2-py3-none-any.whl (50 kB)
 Downloading marshmallow_jsonapi-0.24.0-py2.py3-none-any.whl (14 kB)
@@ -745,7 +745,7 @@ Downloading defusedxml-0.7.1-py2.py3-none-any.whl (25 kB)
 Downloading fundamentals-2.8.3-py3-none-any.whl (91 kB)
 Downloading future-1.0.0-py3-none-any.whl (491 kB)
 Downloading h5py-3.16.0-cp311-cp311-manylinux_2_28_x86_64.whl (5.0 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 131.3 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 109.5 MB/s  0:00:00
 Downloading igwn_ligolw-2.1.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (165 kB)
 Downloading igwn_segments-2.1.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (112 kB)
 Downloading imageio-2.37.4-py3-none-any.whl (318 kB)
@@ -758,12 +758,12 @@ Downloading locket-1.0.0-py2.py3-none-any.whl (4.4 kB)
 Downloading lscsoft_glue-4.1.1-py3-none-any.whl (51 kB)
 Downloading more_itertools-11.1.0-py3-none-any.whl (72 kB)
 Downloading networkx-3.6.1-py3-none-any.whl (2.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 148.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 163.2 MB/s  0:00:00
 Downloading progressbar2-4.6.0-py3-none-any.whl (104 kB)
 Downloading python_utils-4.0.0-py3-none-any.whl (39 kB)
 Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
 Downloading pyarrow-25.0.1-cp311-cp311-manylinux_2_28_x86_64.whl (50.1 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 50.1/50.1 MB 146.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 50.1/50.1 MB 113.3 MB/s  0:00:00
 Downloading pycparser-3.0-py3-none-any.whl (48 kB)
 Downloading python_daemon-3.1.2-py3-none-any.whl (30 kB)
 Downloading lockfile-0.12.2-py2.py3-none-any.whl (13 kB)
@@ -773,39 +773,39 @@ Downloading asn1crypto-1.5.1-py2.py3-none-any.whl (105 kB)
 Building wheels for collected packages: candidate_vetting, tomtoolkit, tom-nonlocalizedevents, trove_mpc, astroplan, pims, bson, docopt, ptemcee
   Building wheel for candidate_vetting (pyproject.toml): started
   Building wheel for candidate_vetting (pyproject.toml): finished with status 'done'
-  Created wheel for candidate_vetting: filename=candidate_vetting-0.2.0a1-py3-none-any.whl size=74658 sha256=0ed59dd5bcad37445a1b6d78867db87b4b31b9bc34949755408192f065105a21
-  Stored in directory: /tmp/pip-ephem-wheel-cache-1hfw7i8l/wheels/9d/06/7b/b30529cd4694bf9e9783b5ec8bc3ee3d671344c61cb93d6ce1
+  Created wheel for candidate_vetting: filename=candidate_vetting-0.2.0a1-py3-none-any.whl size=74658 sha256=bfc581327d0002cbcf96e59d21650b1c4ac42b569d3f1ba02eca4c43be1071e8
+  Stored in directory: /tmp/pip-ephem-wheel-cache-86pj6zvt/wheels/9d/06/7b/b30529cd4694bf9e9783b5ec8bc3ee3d671344c61cb93d6ce1
   Building wheel for tomtoolkit (pyproject.toml): started
   Building wheel for tomtoolkit (pyproject.toml): finished with status 'done'
   Created wheel for tomtoolkit: filename=tomtoolkit-2.32.3-py3-none-any.whl size=1497506 sha256=43099ef8c9e3e50c63b3214ef6b3f07b11ac62c8f7e722ccfaccb5b7d0cd5a97
-  Stored in directory: /tmp/pip-ephem-wheel-cache-1hfw7i8l/wheels/db/92/bc/96b28ea4d4e7b2559d95487fcefe06a567fdc39b5468399945
+  Stored in directory: /tmp/pip-ephem-wheel-cache-86pj6zvt/wheels/db/92/bc/96b28ea4d4e7b2559d95487fcefe06a567fdc39b5468399945
   Building wheel for tom-nonlocalizedevents (pyproject.toml): started
   Building wheel for tom-nonlocalizedevents (pyproject.toml): finished with status 'done'
   Created wheel for tom-nonlocalizedevents: filename=tom_nonlocalizedevents-0.9.0.post2.dev0+d877e02-py3-none-any.whl size=564827 sha256=0b8d1b441d24166e4dc4b55d9544b6daff9f9c7c62cc4966a92edae89e6583ed
   Stored in directory: /home/runner/.cache/pip/wheels/6a/a7/71/fef875303d5edf96d95a02b36e1c807fbfacd877f1be177f04
   Building wheel for trove_mpc (pyproject.toml): started
   Building wheel for trove_mpc (pyproject.toml): finished with status 'done'
-  Created wheel for trove_mpc: filename=trove_mpc-0.1.0-py3-none-any.whl size=5861 sha256=bc43d1c798ecc555307fae59ffb5750c626c29f69fda964848408eff6a1c3cb8
-  Stored in directory: /tmp/pip-ephem-wheel-cache-1hfw7i8l/wheels/f4/15/3a/80342112a4fb9f0fc80bc590aae53789c94707b065b4872af0
+  Created wheel for trove_mpc: filename=trove_mpc-0.1.0-py3-none-any.whl size=5861 sha256=61eca44aa0d4092bbe9d32543c5716daab083f2667c102f0cc2ac2a7aa2d6b67
+  Stored in directory: /tmp/pip-ephem-wheel-cache-86pj6zvt/wheels/f4/15/3a/80342112a4fb9f0fc80bc590aae53789c94707b065b4872af0
   Building wheel for astroplan (pyproject.toml): started
   Building wheel for astroplan (pyproject.toml): finished with status 'done'
-  Created wheel for astroplan: filename=astroplan-0.10.1-py3-none-any.whl size=83900 sha256=e938f2808188e78b6b7361accda8326feb34151f458d56a9c94504db8fd2abc0
+  Created wheel for astroplan: filename=astroplan-0.10.1-py3-none-any.whl size=83900 sha256=4429e22c21ae2e5e9bab0c617f0ff0204754d75989315a6aa34be7c97fc1f8fe
   Stored in directory: /home/runner/.cache/pip/wheels/16/4d/91/f388a218a474d687d6a43e1b55f39952a03b88d834d7c0ac77
   Building wheel for pims (pyproject.toml): started
   Building wheel for pims (pyproject.toml): finished with status 'done'
-  Created wheel for pims: filename=pims-0.7-py3-none-any.whl size=84645 sha256=bf1769bd34d4905172922bd74fafde01a1a9db37874a4779127383cf85ec0edb
+  Created wheel for pims: filename=pims-0.7-py3-none-any.whl size=84645 sha256=50993a4ca0dce23a8e6b6287acd47edc3542bbc4aad0a133e711f1d8ddb4485f
   Stored in directory: /home/runner/.cache/pip/wheels/19/dc/d2/e872d34a5e460ff64d2f916938044498fc123855a68318b9d5
   Building wheel for bson (pyproject.toml): started
   Building wheel for bson (pyproject.toml): finished with status 'done'
-  Created wheel for bson: filename=bson-0.5.10-py3-none-any.whl size=12033 sha256=43da6a25936b327797f67c75d8fad2e4802f263360e2217ae24927767627c79d
+  Created wheel for bson: filename=bson-0.5.10-py3-none-any.whl size=12033 sha256=05301ab8b4624586c89ab7e68705ffa03ce5d05b7d3941d80353d0a2c0f4b56c
   Stored in directory: /home/runner/.cache/pip/wheels/cb/f3/45/c859e83339943dfe2f43e1c9aaebdc00db321191a6fe120947
   Building wheel for docopt (pyproject.toml): started
   Building wheel for docopt (pyproject.toml): finished with status 'done'
-  Created wheel for docopt: filename=docopt-0.6.2-py2.py3-none-any.whl size=13783 sha256=0ffeec913753e3f97be6995e1a0fac3e83cd5a36fa2ae9d2489fe0daba70b1a9
+  Created wheel for docopt: filename=docopt-0.6.2-py2.py3-none-any.whl size=13783 sha256=9096943c6c052f4a9eec41d52cf06b112b219bb0e5b9ee4949df50deb2407740
   Stored in directory: /home/runner/.cache/pip/wheels/1a/b0/8c/4b75c4116c31f83c8f9f047231251e13cc74481cca4a78a9ce
   Building wheel for ptemcee (pyproject.toml): started
   Building wheel for ptemcee (pyproject.toml): finished with status 'done'
-  Created wheel for ptemcee: filename=ptemcee-1.0.0-py3-none-any.whl size=18587 sha256=ac9db4b8f0ac4290f663c6b97d9e5fb2f35df67eb73caf30039bceced54863f3
+  Created wheel for ptemcee: filename=ptemcee-1.0.0-py3-none-any.whl size=18587 sha256=561c76c4710be115945003c1a56a407e86d8cb80ae8e30c7f3dd3f93624c4feb
   Stored in directory: /home/runner/.cache/pip/wheels/3b/41/28/3471e4eb939f80c9ad8f8727c176c075d7898db6f775470485
 Successfully built candidate_vetting tomtoolkit tom-nonlocalizedevents trove_mpc astroplan pims bson docopt ptemcee
 Installing collected packages: slicerator, pytz, lockfile, docopt, django-webpack-loader, django-gravatar2, asn1crypto, zipp, xmltodict, whitenoise, webencodings, urllib3, typing_extensions, traitlets, tqdm, tornado, toolz, toml, tenacity, sqlparse, sphinxcontrib-serializinghtml, sphinxcontrib-qthelp, sphinxcontrib-jsmath, sphinxcontrib-htmlhelp, sphinxcontrib-devhelp, sphinxcontrib-applehelp, soupsieve, snowballstemmer, slack_sdk, six, setuptools, semantic_version, scramp, safe-netrc, rpds-py, roman-numerals, pyzmq, PyYAML, python-daemon, pyparsing, pyjwt, Pygments, pycparser, pyavm, pyarrow, psycopg2-binary, psutil, pluggy, platformdirs, pillow, pandocfilters, numpy, networkx, more-itertools, mistune, marshmallow, MarkupSafe, markdown, lxml, locket, kiwisolver, jupyterlab-pygments, jmespath, jeepney, invoke, iniconfig, importlib-resources, imagesize, igwn-segments, idna, greenlet, google-crc32c, future, fsspec, fonttools, fastjsonschema, fastavro, docutils, defusedxml, cycler, confluent-kafka, cloudpickle, click, charset_normalizer, certifi, bcrypt, backports.tarfile, babel, attrs, astropy-iers-data, asgiref, asdf-standard, annotated-types, alabaster, typing-inspection, tinycss2, tifffile, SQLAlchemy, shapely, scipy, requests, referencing, python-utils, python-dateutil, pytest, pyerfa, pydantic-core, ptemcee, plotly, partd, numcodecs, marshmallow-jsonapi, lscsoft-glue, jupyter-core, jinja2, jaraco.functools, jaraco.context, jaraco.classes, importlib-metadata, imageio, html5lib, h5py, gcn-kafka, fitsio, donfig, django, contourpy, cffi, bleach, beautifulsoup4, asdf-transform-schemas, adc-streaming, accessible-pygments, zarr, sphinx, pytest-django, pynacl, pydantic, progressbar2, pims, pandas, matplotlib, jupyter-client, jsonschema-specifications, igwn-ligolw, hop-client, djangorestframework, django-tables2, django-stubs-ext, django-htmx, django-guardian, django-filter, django-extensions, django-crispy-forms, django-contrib-comments, django-bootstrap4, django-autocomplete-light, dask, cryptography, bson, astropy, asdf, sphinx_design, skypatrol, SecretStorage, scitokens, pyvo, pydata-sphinx-theme, paramiko, MOCPy, matplotlib-label-lines, lalsuite, jsonschema, healpy, fits2image, django-tasks, django-ninja, crispy-bootstrap4, astropy-healpix, astroplan, asdf-coordinates-schemas, sphinx_book_theme, nbformat, keyring, kete, igwn-auth-utils, healpix-alchemy, dustmaps, dask-image, asdf_wcs_schemas, asdf-astropy, antares-client, trove_mpc, tom-alertstreams, requests-gracedb, reproject, nbclient, ligo-gracedb, gwcs, astroquery, ndcube, nbconvert, ligo.skymap, gracedb-sdk, specutils, nbsphinx, tomtoolkit, tom-registration, tom-nonlocalizedevents, fundamentals, candidate_vetting
@@ -815,9 +815,9 @@ Installing collected packages: slicerator, pytz, lockfile, docopt, django-webpac
       Successfully uninstalled setuptools-84.0.0
 
 Successfully installed MOCPy-0.20.0 MarkupSafe-3.0.3 PyYAML-6.0.3 Pygments-2.21.0 SQLAlchemy-2.0.50 SecretStorage-3.5.0 accessible-pygments-0.0.5 adc-streaming-2.6.0 alabaster-1.0.0 annotated-types-0.8.0 antares-client-1.14.0 asdf-5.3.1 asdf-astropy-0.11.0 asdf-coordinates-schemas-0.5.1 asdf-standard-1.5.0 asdf-transform-schemas-0.6.0 asdf_wcs_schemas-0.5.0 asgiref-3.12.1 asn1crypto-1.5.1 astroplan-0.10.1 astropy-6.1.7 astropy-healpix-1.1.3 astropy-iers-data-0.2026.8.18.14.22.31 astroquery-0.4.11 attrs-26.1.0 babel-2.18.0 backports.tarfile-1.2.0 bcrypt-5.0.0 beautifulsoup4-4.15.0 bleach-6.4.0 bson-0.5.10 candidate_vetting-0.2.0a1 certifi-2026.7.22 cffi-2.1.1 charset_normalizer-3.5.1 click-8.4.2 cloudpickle-3.1.2 confluent-kafka-2.15.0 contourpy-1.3.3 crispy-bootstrap4-2024.10 cryptography-47.0.0 cycler-0.12.1 dask-2026.7.1 dask-image-2026.5.0 defusedxml-0.7.1 django-5.2.13 django-autocomplete-light-4.0.0 django-bootstrap4-24.4 django-contrib-comments-2.2.0 django-crispy-forms-2.4 django-extensions-3.2.3 django-filter-24.3 django-gravatar2-1.4.5 django-guardian-2.4.0 django-htmx-1.23.2 django-ninja-1.6.2 django-stubs-ext-5.2.1 django-tables2-3.0.0 django-tasks-0.6.1 django-webpack-loader-3.2.1 djangorestframework-3.16.0 docopt-0.6.2 docutils-0.22.4 donfig-0.8.1.post1 dustmaps-1.0.14 fastavro-1.12.2 fastjsonschema-2.22.2 fits2image-0.4.11 fitsio-1.3.0 fonttools-4.63.0 fsspec-2026.7.0 fundamentals-2.8.3 future-1.0.0 gcn-kafka-0.3.4 google-crc32c-1.8.0 gracedb-sdk-0.2.1 greenlet-3.5.5 gwcs-1.0.3 h5py-3.16.0 healpix-alchemy-1.1.0 healpy-1.19.0 hop-client-0.12.1 html5lib-1.1 idna-3.19 igwn-auth-utils-1.4.0 igwn-ligolw-2.1.1 igwn-segments-2.1.1 imageio-2.37.4 imagesize-2.0.0 importlib-metadata-9.0.0 importlib-resources-6.4.5 iniconfig-2.3.0 invoke-3.0.3 jaraco.classes-3.4.0 jaraco.context-6.1.2 jaraco.functools-4.6.0 jeepney-0.9.0 jinja2-3.1.6 jmespath-1.1.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 jupyter-client-8.9.1 jupyter-core-5.9.1 jupyterlab-pygments-0.3.0 kete-3.2.2 keyring-25.7.0 kiwisolver-1.5.0 lalsuite-7.26.15 ligo-gracedb-2.15.7 ligo.skymap-2.4.0 locket-1.0.0 lockfile-0.12.2 lscsoft-glue-4.1.1 lxml-6.0.2 markdown-3.10.3 marshmallow-3.26.2 marshmallow-jsonapi-0.24.0 matplotlib-3.10.9 matplotlib-label-lines-0.8.0 mistune-3.3.4 more-itertools-11.1.0 nbclient-0.11.0 nbconvert-7.17.1 nbformat-5.11.1 nbsphinx-0.9.8 ndcube-2.4.1 networkx-3.6.1 numcodecs-0.16.5 numpy-1.26.4 pandas-3.0.3 pandocfilters-1.5.1 paramiko-5.0.0 partd-1.4.2 pillow-12.3.0 pims-0.7 platformdirs-4.11.3 plotly-5.24.1 pluggy-1.6.0 progressbar2-4.6.0 psutil-7.2.2 psycopg2-binary-2.9.12 ptemcee-1.0.0 pyarrow-25.0.1 pyavm-0.9.9 pycparser-3.0 pydantic-2.13.4 pydantic-core-2.46.4 pydata-sphinx-theme-0.16.1 pyerfa-2.0.1.5 pyjwt-2.13.0 pynacl-1.6.2 pyparsing-3.3.2 pytest-9.1.1 pytest-django-4.14.0 python-daemon-3.1.2 python-dateutil-2.9.0.post0 python-utils-4.0.0 pytz-2026.3.post1 pyvo-1.9.1 pyzmq-27.1.0 referencing-0.37.0 reproject-0.21.0 requests-2.34.2 requests-gracedb-1.0.0 roman-numerals-4.1.0 rpds-py-2026.6.3 safe-netrc-1.0.1 scipy-1.17.1 scitokens-1.9.7 scramp-1.4.17 semantic_version-2.10.0 setuptools-81.0.0 shapely-2.1.2 six-1.17.0 skypatrol-0.6.21 slack_sdk-3.42.0 slicerator-1.1.0 snowballstemmer-3.1.1 soupsieve-2.9.2 specutils-1.20.3 sphinx-9.0.4 sphinx_book_theme-1.2.0 sphinx_design-0.7.0 sphinxcontrib-applehelp-2.0.0 sphinxcontrib-devhelp-2.0.0 sphinxcontrib-htmlhelp-2.1.0 sphinxcontrib-jsmath-1.0.1 sphinxcontrib-qthelp-2.0.0 sphinxcontrib-serializinghtml-2.0.0 sqlparse-0.6.0 tenacity-9.1.4 tifffile-2026.3.3 tinycss2-1.5.1 tom-alertstreams-1.2.1 tom-nonlocalizedevents-0.9.0.post2.dev0+d877e02 tom-registration-1.0.5 toml-0.10.2 tomtoolkit-2.32.3 toolz-1.1.0 tornado-6.5.8 tqdm-4.70.0 traitlets-5.16.1 trove_mpc-0.1.0 typing-inspection-0.4.4 typing_extensions-4.16.0 urllib3-2.7.0 webencodings-0.6.1 whitenoise-6.12.0 xmltodict-1.0.4 zarr-3.1.5 zipp-4.1.0
-patched /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/tom_targets/migrations/0025_auto_20250206_2017.py
-patched /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/tom_nonlocalizedevents/migrations/0016_externalcoincidence_alter_eventsequence_options_and_more.py
-patched /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/tom_nonlocalizedevents/migrations/0017_alter_eventsequence_external_coincidence_and_more.py
+patched /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/tom_targets/migrations/0025_auto_20250206_2017.py
+patched /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/tom_nonlocalizedevents/migrations/0016_externalcoincidence_alter_eventsequence_options_and_more.py
+patched /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/tom_nonlocalizedevents/migrations/0017_alter_eventsequence_external_coincidence_and_more.py
 === strict builder only ===
 /home/runner/work/bobby-research-os/bobby-research-os/bridge/projects/trove-rubin-bridge/upstream_patch_v3/0001-rubin-split-evidence-boundary.patch
 HEAD is now at 9f23098 Merge pull request #241 from astro-trove/staging
@@ -865,17 +865,17 @@ No changes detected in app 'custom_code'
 .............sss....                                                     [100%]
 =============================== warnings summary ===============================
 tests/test_rubin_split_evidence.py::test_negative_flux_preserved_and_no_science_side_effects
-  /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/django_tasks/backends/database/migrations/0005_alter_dbtaskresult_priority_and_more.py:19: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+  /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/django_tasks/backends/database/migrations/0005_alter_dbtaskresult_priority_and_more.py:19: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
     constraint=models.CheckConstraint(
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-17 passed, 3 skipped, 1 warning in 5.06s
+17 passed, 3 skipped, 1 warning in 5.71s
 .............sss........................................................ [ 33%]
 ........................................................................ [ 67%]
 .....................................................................    [100%]
 =============================== warnings summary ===============================
 tests/test_rubin_split_evidence.py::test_negative_flux_preserved_and_no_science_side_effects
-  /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/django_tasks/backends/database/migrations/0005_alter_dbtaskresult_priority_and_more.py:19: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+  /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/django_tasks/backends/database/migrations/0005_alter_dbtaskresult_priority_and_more.py:19: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
     constraint=models.CheckConstraint(
 
 tests/test_vetting.py::TestAsymmetricGaussian::test_pdf_asymmetric_left_side
@@ -884,7 +884,7 @@ tests/test_vetting.py::TestAsymmetricGaussian::test_pdf_asymmetric_right_side
     integ_norm = 1 / integ
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-210 passed, 3 skipped, 3 warnings in 19.84s
+210 passed, 3 skipped, 3 warnings in 23.46s
 === PostgreSQL focused including concurrency ===
 NOTICE:  database "catalogs_ci" does not exist, skipping
 DROP DATABASE
@@ -892,9 +892,9 @@ CREATE DATABASE
 ....................                                                     [100%]
 =============================== warnings summary ===============================
 tests/test_rubin_split_evidence.py::test_negative_flux_preserved_and_no_science_side_effects
-  /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/django_tasks/backends/database/migrations/0005_alter_dbtaskresult_priority_and_more.py:19: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+  /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/django_tasks/backends/database/migrations/0005_alter_dbtaskresult_priority_and_more.py:19: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
     constraint=models.CheckConstraint(
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-20 passed, 1 warning in 19.81s
+20 passed, 1 warning in 12.25s
 strict_patch_sha256=e09b5fa90ff99da378b49267aad5d091e38834f6ff9684c7c497c3dcd38de776
