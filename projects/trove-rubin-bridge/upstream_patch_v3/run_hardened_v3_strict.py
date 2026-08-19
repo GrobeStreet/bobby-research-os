@@ -14,9 +14,6 @@ source = subprocess.run(
     stdout=subprocess.PIPE,
 ).stdout
 
-# Keep the already-reviewed hardening logic, while fixing the migration-state tuple
-# order so Django's migration autodetector sees the hand-written migration and model
-# definition as identical.
 old_q = 'condition=models.Q(("offset__isnull", False), ("partition__isnull", False), ("topic__gt", "")),'
 new_q = 'condition=models.Q(("topic__gt", ""), ("partition__isnull", False), ("offset__isnull", False)),'
 if source.count(old_q) != 1:
@@ -27,7 +24,7 @@ marker = '''# The base builder now generates the hardened patch with the stricte
 if source.count(marker) != 1:
     raise RuntimeError("Could not locate reviewed hardening finalization marker")
 
-strict_injection = r'''# Canonicalization is part of the evidence protocol. Unknown Python reprs are not
+strict_injection = r"""# Canonicalization is part of the evidence protocol. Unknown Python reprs are not
 # acceptable evidence identity because repr() may contain process-specific memory
 # addresses. Mapping keys must remain strings so JSON normalization cannot collapse
 # distinct Python keys such as 1 and "1". This is a protocol change, so bump both
@@ -192,7 +189,7 @@ def test_hash_protocol_version_is_explicitly_v2():
 '''
 
 # The base builder now generates the hardened, strict-canonicalization patch.
-base.main()'''
+base.main()"""
 
 source = source.replace(marker, strict_injection, 1)
 exec(compile(source, RELATIVE_PATH, "exec"), {"__name__": "__main__", "__file__": str(Path(__file__))})
