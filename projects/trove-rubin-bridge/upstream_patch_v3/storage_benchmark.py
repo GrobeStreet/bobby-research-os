@@ -120,8 +120,8 @@ def main() -> None:
         delivery_metadata={"topic": "trove-rubin-benchmark", "partition": 0, "offset": 1},
     )
     alert_row = RubinAlertEvidence.objects.get(pk=first.alert_evidence_id)
-    context_row = RubinBrokerContextEvidence.objects.get(pk=first.context_evidence_id)
-    delivery_row = RubinEvidenceDelivery.objects.get(pk=first.delivery_id)
+    context_row = RubinBrokerContextEvidence.objects.get(pk=first.broker_context_id)
+    delivery_row = RubinEvidenceDelivery.objects.get(broker="ANTARES", delivery_id=first.delivery_id)
 
     result["first_rows"] = {
         "alert_pg_column_size": row_size(RubinAlertEvidence._meta.db_table, alert_row.pk),
