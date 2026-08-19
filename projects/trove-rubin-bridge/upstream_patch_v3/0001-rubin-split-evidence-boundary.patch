@@ -60,7 +60,7 @@ index c5ae2cb..0f3fc6b 100644
 +    )
 diff --git a/custom_code/migrations/0016_rubin_split_evidence.py b/custom_code/migrations/0016_rubin_split_evidence.py
 new file mode 100644
-index 0000000..aad158f
+index 0000000..0923c3f
 --- /dev/null
 +++ b/custom_code/migrations/0016_rubin_split_evidence.py
 @@ -0,0 +1,82 @@
@@ -79,7 +79,7 @@ index 0000000..aad158f
 +                ("broker", models.CharField(default="ANTARES", max_length=50)),
 +                ("source_record_id", models.CharField(db_index=True, max_length=200)),
 +                ("alert_payload_sha256", models.CharField(db_index=True, max_length=64)),
-+                ("canonicalization_version", models.CharField(default="alert-v1", max_length=50)),
++                ("canonicalization_version", models.CharField(default="alert-v2", max_length=50)),
 +                ("dia_object_id", models.CharField(blank=True, db_index=True, default="", max_length=100)),
 +                ("dia_source_id", models.CharField(blank=True, db_index=True, default="", max_length=100)),
 +                ("ss_object_id", models.CharField(blank=True, db_index=True, default="", max_length=100)),
@@ -108,7 +108,7 @@ index 0000000..aad158f
 +                ("broker", models.CharField(default="ANTARES", max_length=50)),
 +                ("locus_id", models.CharField(db_index=True, max_length=100)),
 +                ("context_sha256", models.CharField(db_index=True, max_length=64)),
-+                ("canonicalization_version", models.CharField(default="context-v1", max_length=50)),
++                ("canonicalization_version", models.CharField(default="context-v2", max_length=50)),
 +                ("context_snapshot", models.JSONField()),
 +                ("created_at", models.DateTimeField(auto_now_add=True)),
 +            ],
@@ -147,7 +147,7 @@ index 0000000..aad158f
 +        ),
 +    ]
 diff --git a/custom_code/models.py b/custom_code/models.py
-index f2775a9..463f70b 100644
+index f2775a9..7fc6e69 100644
 --- a/custom_code/models.py
 +++ b/custom_code/models.py
 @@ -12,3 +12,127 @@ class CredibleRegionContour(models.Model):
@@ -190,7 +190,7 @@ index f2775a9..463f70b 100644
 +    broker = models.CharField(max_length=50, default="ANTARES")
 +    source_record_id = models.CharField(max_length=200, db_index=True)
 +    alert_payload_sha256 = models.CharField(max_length=64, db_index=True)
-+    canonicalization_version = models.CharField(max_length=50, default="alert-v1")
++    canonicalization_version = models.CharField(max_length=50, default="alert-v2")
 +
 +    dia_object_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
 +    dia_source_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
@@ -224,7 +224,7 @@ index f2775a9..463f70b 100644
 +    broker = models.CharField(max_length=50, default="ANTARES")
 +    locus_id = models.CharField(max_length=100, db_index=True)
 +    context_sha256 = models.CharField(max_length=64, db_index=True)
-+    canonicalization_version = models.CharField(max_length=50, default="context-v1")
++    canonicalization_version = models.CharField(max_length=50, default="context-v2")
 +    context_snapshot = models.JSONField()
 +    created_at = models.DateTimeField(auto_now_add=True)
 +
@@ -280,10 +280,10 @@ index f2775a9..463f70b 100644
 +        ]
 diff --git a/custom_code/rubin_evidence.py b/custom_code/rubin_evidence.py
 new file mode 100644
-index 0000000..59fd300
+index 0000000..0fe73d0
 --- /dev/null
 +++ b/custom_code/rubin_evidence.py
-@@ -0,0 +1,254 @@
+@@ -0,0 +1,269 @@
 +from __future__ import annotations
 +
 +import base64
@@ -301,8 +301,8 @@ index 0000000..59fd300
 +from .models import RubinAlertEvidence, RubinBrokerContextEvidence, RubinEvidenceDelivery
 +
 +BROKER = "ANTARES"
-+ALERT_HASH_DOMAIN = "trove-rubin-alert-evidence:v1"
-+CONTEXT_HASH_DOMAIN = "trove-rubin-broker-context:v1"
++ALERT_HASH_DOMAIN = "trove-rubin-alert-evidence:v2"
++CONTEXT_HASH_DOMAIN = "trove-rubin-broker-context:v2"
 +_NONFINITE_KEY = "__trove_nonfinite_float__"
 +_BYTES_KEY = "__trove_bytes_base64__"
 +
@@ -336,21 +336,36 @@ index 0000000..59fd300
 +    if isinstance(value, (datetime, date)):
 +        return value.isoformat()
 +    if isinstance(value, Mapping):
-+        return {str(k): _json_safe(v) for k, v in value.items()}
++        non_string_keys = [key for key in value if not isinstance(key, str)]
++        if non_string_keys:
++            raise TypeError("Broker evidence mappings must use string keys")
++        return {key: _json_safe(item) for key, item in value.items()}
 +    if isinstance(value, (list, tuple)):
-+        return [_json_safe(v) for v in value]
++        return [_json_safe(item) for item in value]
 +    if isinstance(value, set):
-+        return sorted((_json_safe(v) for v in value), key=lambda item: repr(item))
++        safe = [_json_safe(item) for item in value]
++        return sorted(
++            safe,
++            key=lambda item: json.dumps(
++                item,
++                sort_keys=True,
++                separators=(",", ":"),
++                ensure_ascii=False,
++                allow_nan=False,
++            ),
++        )
 +    item_method = getattr(value, "item", None)
 +    if callable(item_method):
 +        try:
-+            return _json_safe(item_method())
++            converted = item_method()
 +        except (TypeError, ValueError):
-+            pass
-+    return {
-+        "__trove_python_type__": f"{value.__class__.__module__}.{value.__class__.__qualname__}",
-+        "__trove_python_repr__": repr(value),
-+    }
++            converted = value
++        if converted is not value:
++            return _json_safe(converted)
++    raise TypeError(
++        "Unsupported broker evidence type: "
++        f"{value.__class__.__module__}.{value.__class__.__qualname__}"
++    )
 +
 +
 +def _canonical_bytes(domain: str, value: Any) -> bytes:
@@ -403,7 +418,7 @@ index 0000000..59fd300
 +def _alert_defaults(alert: Any, snapshot: dict[str, Any]) -> dict[str, Any]:
 +    properties = _get(alert, "properties", {}) or {}
 +    return {
-+        "canonicalization_version": "alert-v1",
++        "canonicalization_version": "alert-v2",
 +        "dia_object_id": str(properties.get("lsst_diaSource_diaObjectId") or ""),
 +        "dia_source_id": str(properties.get("lsst_diaSource_diaSourceId") or ""),
 +        "ss_object_id": str(properties.get("lsst_diaSource_ssObjectId") or ""),
@@ -471,7 +486,7 @@ index 0000000..59fd300
 +            locus_id=locus_id,
 +            context_sha256=context_digest,
 +            defaults={
-+                "canonicalization_version": "context-v1",
++                "canonicalization_version": "context-v2",
 +                "context_snapshot": context_snapshot,
 +            },
 +        )
@@ -832,10 +847,10 @@ index 0000000..2a81ab8
 +}
 diff --git a/tests/test_rubin_split_evidence.py b/tests/test_rubin_split_evidence.py
 new file mode 100644
-index 0000000..e96fb57
+index 0000000..e82a23d
 --- /dev/null
 +++ b/tests/test_rubin_split_evidence.py
-@@ -0,0 +1,253 @@
+@@ -0,0 +1,293 @@
 +import hashlib
 +import json
 +from copy import deepcopy
@@ -1089,3 +1104,43 @@ index 0000000..e96fb57
 +    assert RubinAlertEvidence.objects.count() == 2
 +    assert RubinBrokerContextEvidence.objects.count() == 1
 +    assert RubinEvidenceDelivery.objects.count() == 2
++
++
++@DB
++def test_unknown_python_objects_fail_closed_instead_of_hashing_repr():
++    p = payload(); alert = deepcopy(first_rubin(p))
++    alert["properties"]["unsupported"] = object()
++    with pytest.raises(TypeError, match="Unsupported broker evidence type"):
++        ingest_antares_rubin_delivery(
++            as_alert(alert),
++            locus_context=as_context(p["locus"]),
++            delivery_metadata={"delivery_id":"strict:unknown"},
++        )
++    assert RubinAlertEvidence.objects.count() == 0
++    assert RubinEvidenceDelivery.objects.count() == 0
++
++
++@DB
++def test_non_string_mapping_keys_fail_closed_without_key_collision():
++    p = payload(); alert = deepcopy(first_rubin(p))
++    alert["properties"]["nested"] = {1: "integer-key", "1": "string-key"}
++    with pytest.raises(TypeError, match="string keys"):
++        ingest_antares_rubin_delivery(
++            as_alert(alert),
++            locus_context=as_context(p["locus"]),
++            delivery_metadata={"delivery_id":"strict:keys"},
++        )
++    assert RubinAlertEvidence.objects.count() == 0
++
++
++def test_set_serialization_is_canonical_and_not_repr_ordered():
++    from custom_code.rubin_evidence import _json_safe
++    left = _json_safe({"items": {"b", "a"}})
++    right = _json_safe({"items": {"a", "b"}})
++    assert left == right == {"items": ["a", "b"]}
++
++
++def test_hash_protocol_version_is_explicitly_v2():
++    from custom_code.rubin_evidence import ALERT_HASH_DOMAIN, CONTEXT_HASH_DOMAIN
++    assert ALERT_HASH_DOMAIN.endswith(":v2")
++    assert CONTEXT_HASH_DOMAIN.endswith(":v2")
