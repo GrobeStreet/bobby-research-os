@@ -1,0 +1,49 @@
+{
+  "status": "BLOCKED_CURRENT_TRANSPORT_SURFACE",
+  "validated_at_utc": "2026-08-19T06:12:52Z",
+  "ci_run_id": 32222432285,
+  "versions": {
+    "antares-client": "1.14.0",
+    "tom-alertstreams": "1.2.1",
+    "django": "5.2.13"
+  },
+  "observed": {
+    "antares_high_level_return_shape_is_topic_locus": true,
+    "kafka_partition_exposed_to_application": false,
+    "kafka_offset_exposed_to_application": false,
+    "trigger_alert_explicitly_exposed_by_stream_return": false,
+    "auto_commit_configurable": true,
+    "auto_offset_store_explicitly_configurable_by_client": false,
+    "client_commit_method_exists": true,
+    "tom_handler_receives_only_locus": true,
+    "tom_wrapper_commits_after_success": false,
+    "tom_handler_exception_escapes_listen": true,
+    "tom_readstreams_has_listener_supervision": false
+  },
+  "activation_blockers": [
+    "No explicit triggering Alert is delivered by the current TOM handler surface.",
+    "Kafka partition/offset are hidden by the ANTARES high-level return path and TOM handler surface.",
+    "Default automatic commits can advance independently of TROVE durable-ingest completion.",
+    "Disabling automatic commit alone gives the current TOM wrapper no durable acknowledgement/progress path.",
+    "A handler exception terminates the listener thread; readstreams provides no restart supervisor.",
+    "A poison-message policy cannot safely log-and-continue because later commits on the same partition can skip an unresolved failed offset unless failure is durably quarantined or the partition is stopped."
+  ],
+  "minimum_next_contract": {
+    "trigger": "explicit current ANTARES Alert, not inferred from locus history",
+    "transport_identity": "stable namespace + topic + partition + offset (+ broker delivery id if available)",
+    "ack": "only after durable evidence success, or after durable quarantine for a permanent poison message",
+    "transient_failure": "no acknowledgement; stop/retry without committing past the failed offset",
+    "permanent_failure": "durably quarantine raw/lossless trigger plus coordinates, then intentionally acknowledge to unblock the partition",
+    "listener": "supervised/restarted; exception must be observable",
+    "consumer_group": "stable, explicit group identity across restarts/deployments"
+  },
+  "source_sha256": {
+    "antares_streaming_client_commit": "1b65e495f7b4fb0dd6681df72e19d8611dfe8fdebd4605332c3bfab5e5c5d21b",
+    "antares_streaming_client_init": "19b2438665fa1fbe99d7d974868be01c2569ddcf57f14d884466cc88810b6f19",
+    "antares_streaming_client_iter": "b2f7d5fc04fca66864fea0b2fe1b96c0effb936a666264664204ea1f885efdd9",
+    "antares_streaming_client_poll": "a3695395cc3770ba634d934be56d5a0233193a6e794303e71103ca0ae087c5ac",
+    "antares_streaming_client_timed_poll": "099cc580c2658547516e0cda02f524e08124bb46b43a9486e0bcc36134846bb2",
+    "tom_antares_listen": "3086bb7dde3c04d2d4b5ff8686492f2b40f87a224490a0585bb8a0ac88e02fce",
+    "tom_readstreams_handle": "381f8f0114f993c703158f53ba57fef6cf0186f155963072f87d50db4da93bdd"
+  }
+}
