@@ -1,0 +1,14 @@
+{
+  "install_status": 0,
+  "build_status": 0,
+  "apply_check_status": 0,
+  "apply_status": 0,
+  "django_check_status": 0,
+  "migration_check_status": 0,
+  "sqlite_focused_status": 0,
+  "sqlite_full_status": 0,
+  "postgres_focused_status": 0,
+  "trove_commit": "9f2309890b248d78fc470632c7ee5d9c8c4739b6",
+  "bridge_commit_before_results": "31241ba04853a4f61d3b0abe08470e37b28c4cfd",
+  "patch_sha256": "c29511ba6ac6389aba4d21a5746489b9cee4df617a76870ae122035fa75071c2"
+}
