@@ -1,4 +1,4 @@
-name: Validate TROVE Rubin evidence v2
+name: Validate TROVE Rubin evidence v3
 
 on:
   pull_request:
@@ -10,6 +10,21 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: trove_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout bridge staging branch
         uses: actions/checkout@v4
@@ -30,13 +45,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Build and validate exact hardened evidence patch
+      - name: Build and validate exact v3 split-identity patch
         shell: bash
+        env:
+          PGPASSWORD: postgres
         run: |
           set +e
           ROOT="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge"
-          OUTDIR="$ROOT/upstream_patch_v2"
-          PATCH="$OUTDIR/0001-rubin-evidence-core.patch"
+          OUTDIR="$ROOT/upstream_patch_v3"
+          PATCH="$OUTDIR/0001-rubin-split-evidence-boundary.patch"
           OUT="$OUTDIR/validation-output.txt"
           STATUS="$OUTDIR/validation-status.json"
           : > "$OUT"
@@ -49,7 +66,6 @@ jobs:
           python --version 2>&1 | tee -a "$OUT"
           echo "trove_commit=$TROVE_SHA" | tee -a "$OUT"
           echo "bridge_commit=$BRIDGE_SHA" | tee -a "$OUT"
-          echo "tom_nonlocalizedevents_reproduction_pin=$TNLE_SHA" | tee -a "$OUT"
 
           python - <<'PY'
           from pathlib import Path
@@ -96,7 +112,6 @@ jobs:
           EOF
 
           if [ "$INSTALL_STATUS" -eq 0 ]; then
-            echo '=== patch upstream migrations exactly as TROVE CI ===' | tee -a "$OUT"
             python <<'PY' 2>&1 | tee -a "$OUT"
           import os, site
           patches = [
@@ -114,18 +129,15 @@ jobs:
           PY
           fi
 
-          echo '=== build exact hardened v2 patch ===' | tee -a "$OUT"
           if [ "$INSTALL_STATUS" -eq 0 ]; then
-            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" PYTHONPATH="$OUTDIR" python "$OUTDIR/run_build.py" 2>&1 | tee -a "$OUT"
+            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" python "$OUTDIR/build_split_identity_patch.py" 2>&1 | tee -a "$OUT"
             BUILD_STATUS=${PIPESTATUS[0]}
           else
             BUILD_STATUS=99
           fi
 
           if [ "$BUILD_STATUS" -eq 0 ]; then
-            echo '=== frozen changed files ===' | tee -a "$OUT"
             cat "$OUTDIR/changed-files.txt" | tee -a "$OUT"
-            echo '=== reset pristine TROVE and apply-check frozen patch ===' | tee -a "$OUT"
             git -C trove reset --hard HEAD 2>&1 | tee -a "$OUT"
             git -C trove clean -fd 2>&1 | tee -a "$OUT"
             git -C trove apply --check "$PATCH" 2>&1 | tee -a "$OUT"
@@ -142,54 +154,32 @@ jobs:
           fi
 
           if [ "$APPLY_STATUS" -eq 0 ]; then
-            echo '=== django check ===' | tee -a "$OUT"
             (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python manage.py check) 2>&1 | tee -a "$OUT"
             CHECK_STATUS=${PIPESTATUS[0]}
-          else
-            CHECK_STATUS=99
-          fi
-
-          # TROVE main already has unrelated migration drift in scoring and the pinned
-          # reproduction dependency. Record whether *custom_code* itself is clean rather
-          # than treating unrelated upstream drift as a Rubin patch failure.
-          if [ "$APPLY_STATUS" -eq 0 ]; then
-            echo '=== custom_code migration consistency ===' | tee -a "$OUT"
             (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python manage.py makemigrations custom_code --check --dry-run) 2>&1 | tee -a "$OUT"
-            MIGRATION_CHECK_STATUS=${PIPESTATUS[0]}
-          else
-            MIGRATION_CHECK_STATUS=99
-          fi
-
-          if [ "$APPLY_STATUS" -eq 0 ]; then
-            echo '=== migrate clean database ===' | tee -a "$OUT"
-            (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python manage.py migrate --run-syncdb --noinput) 2>&1 | tee -a "$OUT"
-            MIGRATE_STATUS=${PIPESTATUS[0]}
-          else
-            MIGRATE_STATUS=99
-          fi
-
-          if [ "$APPLY_STATUS" -eq 0 ]; then
-            echo '=== focused Rubin evidence tests ===' | tee -a "$OUT"
-            (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python -m pytest tests/test_rubin_evidence.py -q) 2>&1 | tee -a "$OUT"
-            FOCUSED_STATUS=${PIPESTATUS[0]}
-          else
-            FOCUSED_STATUS=99
-          fi
-
-          if [ "$APPLY_STATUS" -eq 0 ]; then
-            echo '=== existing TROVE test suite ===' | tee -a "$OUT"
+            MIGRATION_STATUS=${PIPESTATUS[0]}
+            (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python -m pytest tests/test_rubin_split_evidence.py -q) 2>&1 | tee -a "$OUT"
+            SQLITE_FOCUSED=${PIPESTATUS[0]}
             (cd trove && POSTGRES_DB='' SKIP_DUSTMAP=1 python -m pytest tests/ -q) 2>&1 | tee -a "$OUT"
-            FULL_STATUS=${PIPESTATUS[0]}
+            SQLITE_FULL=${PIPESTATUS[0]}
           else
-            FULL_STATUS=99
+            CHECK_STATUS=99; MIGRATION_STATUS=99; SQLITE_FOCUSED=99; SQLITE_FULL=99
           fi
 
-          if [ -f "$PATCH" ]; then
-            PATCH_SHA="$(sha256sum "$PATCH" | awk '{print $1}')"
+          echo '=== PostgreSQL focused validation ===' | tee -a "$OUT"
+          psql -h 127.0.0.1 -U postgres -d postgres -c 'CREATE DATABASE catalogs_ci;' 2>&1 | tee -a "$OUT"
+          CREATE_CATALOGS=${PIPESTATUS[0]}
+          if [ "$APPLY_STATUS" -eq 0 ] && [ "$CREATE_CATALOGS" -eq 0 ]; then
+            (cd trove && \
+              POSTGRES_DB='trove_ci' POSTGRES_HOST='127.0.0.1' POSTGRES_PASSWORD='postgres' POSTGRES_PORT='5432' POSTGRES_USER='postgres' \
+              POSTGRES_DB2='catalogs_ci' POSTGRES_HOST2='127.0.0.1' POSTGRES_PASSWORD2='postgres' POSTGRES_PORT2='5432' POSTGRES_USER2='postgres' \
+              SKIP_DUSTMAP=1 python -m pytest tests/test_rubin_split_evidence.py -q) 2>&1 | tee -a "$OUT"
+            POSTGRES_FOCUSED=${PIPESTATUS[0]}
           else
-            PATCH_SHA=""
+            POSTGRES_FOCUSED=99
           fi
 
+          PATCH_SHA="$(sha256sum "$PATCH" | awk '{print $1}')"
           cat > "$STATUS" <<EOF
           {
             "install_status": $INSTALL_STATUS,
@@ -197,33 +187,30 @@ jobs:
             "apply_check_status": $APPLY_CHECK_STATUS,
             "apply_status": $APPLY_STATUS,
             "django_check_status": $CHECK_STATUS,
-            "custom_code_migration_check_status": $MIGRATION_CHECK_STATUS,
-            "migrate_status": $MIGRATE_STATUS,
-            "focused_test_status": $FOCUSED_STATUS,
-            "full_trove_test_status": $FULL_STATUS,
+            "migration_check_status": $MIGRATION_STATUS,
+            "sqlite_focused_status": $SQLITE_FOCUSED,
+            "sqlite_full_status": $SQLITE_FULL,
+            "postgres_focused_status": $POSTGRES_FOCUSED,
             "trove_commit": "$TROVE_SHA",
             "bridge_commit_before_results": "$BRIDGE_SHA",
-            "tom_nonlocalizedevents_reproduction_pin": "$TNLE_SHA",
             "patch_sha256": "$PATCH_SHA"
           }
           EOF
 
-          # Publish artifacts without losing newer staging commits. Copy the generated
-          # files aside, reset the bridge checkout to current remote staging, restore
-          # only validation artifacts, commit, and push.
-          mkdir -p /tmp/trove-rubin-v2-artifacts
-          cp "$PATCH" "$OUTDIR/changed-files.txt" "$OUT" "$STATUS" /tmp/trove-rubin-v2-artifacts/
+          mkdir -p /tmp/trove-rubin-v3-artifacts
+          cp "$PATCH" "$OUTDIR/changed-files.txt" "$OUT" "$STATUS" /tmp/trove-rubin-v3-artifacts/
           git -C bridge fetch origin project/trove-rubin-bridge
           git -C bridge reset --hard origin/project/trove-rubin-bridge
-          cp /tmp/trove-rubin-v2-artifacts/0001-rubin-evidence-core.patch "$OUTDIR/0001-rubin-evidence-core.patch"
-          cp /tmp/trove-rubin-v2-artifacts/changed-files.txt "$OUTDIR/changed-files.txt"
-          cp /tmp/trove-rubin-v2-artifacts/validation-output.txt "$OUTDIR/validation-output.txt"
-          cp /tmp/trove-rubin-v2-artifacts/validation-status.json "$OUTDIR/validation-status.json"
+          mkdir -p "$OUTDIR"
+          cp /tmp/trove-rubin-v3-artifacts/0001-rubin-split-evidence-boundary.patch "$OUTDIR/0001-rubin-split-evidence-boundary.patch"
+          cp /tmp/trove-rubin-v3-artifacts/changed-files.txt "$OUTDIR/changed-files.txt"
+          cp /tmp/trove-rubin-v3-artifacts/validation-output.txt "$OUTDIR/validation-output.txt"
+          cp /tmp/trove-rubin-v3-artifacts/validation-status.json "$OUTDIR/validation-status.json"
           git -C bridge config user.name 'github-actions[bot]'
           git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -C bridge add projects/trove-rubin-bridge/upstream_patch_v2/0001-rubin-evidence-core.patch projects/trove-rubin-bridge/upstream_patch_v2/changed-files.txt projects/trove-rubin-bridge/upstream_patch_v2/validation-output.txt projects/trove-rubin-bridge/upstream_patch_v2/validation-status.json
-          git -C bridge commit -m 'Freeze validated hardened v2 Rubin evidence patch' || true
+          git -C bridge add projects/trove-rubin-bridge/upstream_patch_v3/
+          git -C bridge commit -m 'Freeze validated v3 split Rubin evidence patch' || true
           git -C bridge push origin HEAD:project/trove-rubin-bridge
           PUBLISH_STATUS=$?
 
-          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$APPLY_CHECK_STATUS" -ne 0 ] || [ "$APPLY_STATUS" -ne 0 ] || [ "$CHECK_STATUS" -ne 0 ] || [ "$MIGRATION_CHECK_STATUS" -ne 0 ] || [ "$MIGRATE_STATUS" -ne 0 ] || [ "$FOCUSED_STATUS" -ne 0 ] || [ "$FULL_STATUS" -ne 0 ] || [ "$PUBLISH_STATUS" -ne 0 ]; then exit 1; fi
+          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$APPLY_CHECK_STATUS" -ne 0 ] || [ "$APPLY_STATUS" -ne 0 ] || [ "$CHECK_STATUS" -ne 0 ] || [ "$MIGRATION_STATUS" -ne 0 ] || [ "$SQLITE_FOCUSED" -ne 0 ] || [ "$SQLITE_FULL" -ne 0 ] || [ "$POSTGRES_FOCUSED" -ne 0 ] || [ "$PUBLISH_STATUS" -ne 0 ]; then exit 1; fi
