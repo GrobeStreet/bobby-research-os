@@ -130,7 +130,7 @@ jobs:
 
           echo '=== strict builder only ===' | tee -a "$OUT"
           if [ "$INSTALL_STATUS" -eq 0 ] && [ "$CLEAN_SOURCE_STATUS" -eq 0 ]; then
-            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" python "$OUTDIR/run_hardened_v3_strict.py" 2>&1 | tee -a "$OUT"
+            TROVE_RUBIN_BRIDGE_ROOT="$ROOT" TROVE_ROOT="$GITHUB_WORKSPACE/trove" python "$OUTDIR/run_hardened_v3_strict_final.py" 2>&1 | tee -a "$OUT"
             BUILD_STATUS=${PIPESTATUS[0]}
           else
             BUILD_STATUS=99
@@ -179,6 +179,12 @@ jobs:
             POSTGRES_FOCUSED=99
           fi
 
+          # Failed validation must never publish or overwrite canonical artifacts.
+          if [ "$CLEAN_SOURCE_STATUS" -ne 0 ] || [ "$INSTALL_STATUS" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$APPLY_CHECK_STATUS" -ne 0 ] || [ "$APPLY_STATUS" -ne 0 ] || [ "$CHECK_STATUS" -ne 0 ] || [ "$MIGRATION_STATUS" -ne 0 ] || [ "$SQLITE_FOCUSED" -ne 0 ] || [ "$SQLITE_FULL" -ne 0 ] || [ "$POSTGRES_FOCUSED" -ne 0 ]; then
+            echo 'PRE_FREEZE_VALIDATION_FAILED: refusing to publish' | tee -a "$OUT"
+            exit 1
+          fi
+
           PATCH_SHA="$(sha256sum "$PATCH" | awk '{print $1}')"
           echo "strict_patch_sha256=$PATCH_SHA" | tee -a "$OUT"
           cat > "$STATUS" <<EOF
@@ -216,6 +222,7 @@ jobs:
           git -C bridge commit -m 'Freeze strict v2 Rubin evidence patch' || true
           git -C bridge push origin HEAD:project/trove-rubin-bridge
           PUBLISH_STATUS=$?
+          if [ "$PUBLISH_STATUS" -ne 0 ]; then exit 1; fi
 
           echo '=== independent frozen-file verification ===' | tee -a "$OUT"
           git clone --quiet https://github.com/astro-trove/trove.git verify-trove
@@ -260,4 +267,4 @@ jobs:
           echo "verify_sqlite=$VERIFY_SQLITE" | tee -a "$OUT"
           echo "verify_postgres=$VERIFY_POSTGRES" | tee -a "$OUT"
 
-          if [ "$CLEAN_SOURCE_STATUS" -ne 0 ] || [ "$INSTALL_STATUS" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$APPLY_CHECK_STATUS" -ne 0 ] || [ "$APPLY_STATUS" -ne 0 ] || [ "$CHECK_STATUS" -ne 0 ] || [ "$MIGRATION_STATUS" -ne 0 ] || [ "$SQLITE_FOCUSED" -ne 0 ] || [ "$SQLITE_FULL" -ne 0 ] || [ "$POSTGRES_FOCUSED" -ne 0 ] || [ "$PUBLISH_STATUS" -ne 0 ] || [ "$VERIFY_SHA_STATUS" -ne 0 ] || [ "$VERIFY_APPLY_CHECK" -ne 0 ] || [ "$VERIFY_APPLY" -ne 0 ] || [ "$VERIFY_MIGRATION" -ne 0 ] || [ "$VERIFY_SQLITE" -ne 0 ] || [ "$VERIFY_POSTGRES" -ne 0 ]; then exit 1; fi
+          if [ "$VERIFY_SHA_STATUS" -ne 0 ] || [ "$VERIFY_APPLY_CHECK" -ne 0 ] || [ "$VERIFY_APPLY" -ne 0 ] || [ "$VERIFY_MIGRATION" -ne 0 ] || [ "$VERIFY_SQLITE" -ne 0 ] || [ "$VERIFY_POSTGRES" -ne 0 ]; then exit 1; fi
