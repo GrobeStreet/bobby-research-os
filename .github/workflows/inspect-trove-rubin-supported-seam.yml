@@ -18,9 +18,28 @@ jobs:
       - name: Install exact dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install 'django==5.2.13' 'antares-client==1.14.0' 'tom-alertstreams==1.2.1'
+          python -m pip install 'django==5.2.13' 'antares-client==1.14.0' 'tom-alertstreams==1.2.1' pytest
       - name: Inspect runtime seam
         shell: bash
         run: |
           set -o pipefail
           python projects/trove-rubin-bridge/supported_seam/inspect_runtime.py | tee /tmp/supported-seam.txt
+      - name: Run supported seam prototype tests
+        shell: bash
+        run: |
+          set -o pipefail
+          cd projects/trove-rubin-bridge/supported_seam
+          python -m pytest -q | tee /tmp/supported-seam-tests.txt
+      - name: Fail closed on unsupported production assumptions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('projects/trove-rubin-bridge/supported_seam/prototype.py').read_text()
+          assert 'locus.alerts' in text and 'never access' in text
+          assert 'getattr(locus, "_alerts", None)' in text
+          assert 'client.commit()' in text
+          assert 'enable_auto_commit=False' in text
+          assert 'partition=message.partition()' in text
+          assert 'offset=message.offset()' in text
+          print('supported seam safety assertions present')
+          PY
