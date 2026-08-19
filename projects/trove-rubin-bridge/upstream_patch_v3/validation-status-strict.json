@@ -10,8 +10,9 @@
   "sqlite_full_status": 0,
   "postgres_focused_status": 0,
   "trove_commit": "9f2309890b248d78fc470632c7ee5d9c8c4739b6",
-  "bridge_commit_before_results": "0b1521be5475906d2700c0d63a49a64522841183",
+  "bridge_commit_before_results": "a4f3de254cd0d7571d5012551e1dfe03cfee0c94",
   "tom_nonlocalizedevents_reproduction_pin": "d877e0281c6c826d753b19442a7452dbaafb00c5",
-  "canonicalization_protocol": "alert-v2/context-v2",
-  "patch_sha256": "e09b5fa90ff99da378b49267aad5d091e38834f6ff9684c7c497c3dcd38de776"
+  "canonicalization_protocol": "alert-v3/context-v3/typed-normal-form-v1",
+  "transport_identity_protocol": "broker+transport_namespace+delivery-or-kafka-position-v1",
+  "patch_sha256": "7a12f85c2ffa1001a97042f6a30ef203ea1179a9fe5247abd216a49310ca5eb0"
 }
