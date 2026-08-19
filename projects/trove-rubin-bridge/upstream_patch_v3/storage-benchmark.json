@@ -1,0 +1,143 @@
+{
+  "database": "PostgreSQL",
+  "first_rows": {
+    "alert_pg_column_size": 4016,
+    "context_pg_column_size": 304,
+    "delivery_pg_column_size": 136,
+    "stored_alert_snapshot_json_bytes": 5248,
+    "stored_context_snapshot_json_bytes": 138
+  },
+  "fixture_locus_id": "ANT2021silgg",
+  "input_json_bytes": {
+    "alert_projection": 5248,
+    "context_projection": 138
+  },
+  "snapshots": [
+    {
+      "counts": {
+        "alerts": 0,
+        "contexts": 0,
+        "deliveries": 0
+      },
+      "label": "empty",
+      "relations": {
+        "alert": {
+          "heap_bytes": 0,
+          "index_bytes": 114688,
+          "total_bytes": 122880
+        },
+        "context": {
+          "heap_bytes": 0,
+          "index_bytes": 49152,
+          "total_bytes": 57344
+        },
+        "delivery": {
+          "heap_bytes": 0,
+          "index_bytes": 57344,
+          "total_bytes": 65536
+        }
+      }
+    },
+    {
+      "counts": {
+        "alerts": 1,
+        "contexts": 1,
+        "deliveries": 1
+      },
+      "label": "one_alert_one_context_one_delivery",
+      "relations": {
+        "alert": {
+          "heap_bytes": 8192,
+          "index_bytes": 229376,
+          "total_bytes": 262144
+        },
+        "context": {
+          "heap_bytes": 8192,
+          "index_bytes": 98304,
+          "total_bytes": 114688
+        },
+        "delivery": {
+          "heap_bytes": 8192,
+          "index_bytes": 114688,
+          "total_bytes": 131072
+        }
+      }
+    },
+    {
+      "counts": {
+        "alerts": 1,
+        "contexts": 1,
+        "deliveries": 100
+      },
+      "label": "one_alert_one_context_100_deliveries",
+      "relations": {
+        "alert": {
+          "heap_bytes": 8192,
+          "index_bytes": 229376,
+          "total_bytes": 262144
+        },
+        "context": {
+          "heap_bytes": 8192,
+          "index_bytes": 98304,
+          "total_bytes": 114688
+        },
+        "delivery": {
+          "heap_bytes": 16384,
+          "index_bytes": 114688,
+          "total_bytes": 163840
+        }
+      }
+    },
+    {
+      "counts": {
+        "alerts": 1,
+        "contexts": 21,
+        "deliveries": 120
+      },
+      "label": "one_alert_21_contexts_120_deliveries",
+      "relations": {
+        "alert": {
+          "heap_bytes": 8192,
+          "index_bytes": 229376,
+          "total_bytes": 262144
+        },
+        "context": {
+          "heap_bytes": 8192,
+          "index_bytes": 98304,
+          "total_bytes": 114688
+        },
+        "delivery": {
+          "heap_bytes": 24576,
+          "index_bytes": 114688,
+          "total_bytes": 172032
+        }
+      }
+    },
+    {
+      "counts": {
+        "alerts": 2,
+        "contexts": 21,
+        "deliveries": 121
+      },
+      "label": "two_alert_versions_21_contexts_121_deliveries",
+      "relations": {
+        "alert": {
+          "heap_bytes": 8192,
+          "index_bytes": 229376,
+          "total_bytes": 262144
+        },
+        "context": {
+          "heap_bytes": 8192,
+          "index_bytes": 98304,
+          "total_bytes": 114688
+        },
+        "delivery": {
+          "heap_bytes": 24576,
+          "index_bytes": 114688,
+          "total_bytes": 172032
+        }
+      }
+    }
+  ],
+  "source_alert_id": "lsst:170604730330906635"
+}
