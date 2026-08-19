@@ -1,0 +1,43 @@
+name: EXP-001 PFAS baseline reproduction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - water-pfas-pilot-2026
+    paths:
+      - 'src/exp001_reproduce_baseline.py'
+      - 'requirements-exp001.txt'
+      - '.github/workflows/exp001.yml'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements-exp001.txt
+
+      - name: Run EXP-001
+        run: python src/exp001_reproduce_baseline.py
+
+      - name: Upload EXP-001 outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp001-outputs
+          path: |
+            outputs/exp001_baseline_summary.csv
+            outputs/exp001_baseline_result.json
+          if-no-files-found: warn
