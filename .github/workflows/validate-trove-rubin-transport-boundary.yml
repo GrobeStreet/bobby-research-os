@@ -1,0 +1,43 @@
+name: Validate TROVE Rubin transport boundary
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/trove-rubin-transport-boundary
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact transport dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'antares-client==1.14.0' 'tom-alertstreams==1.2.1'
+      - name: Run fail-closed hostile transport probe
+        run: |
+          python projects/trove-rubin-bridge/transport_boundary_review/probe_transport_boundary.py | tee /tmp/transport-probe.txt
+      - name: Require blocked-current-surface verdict
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('projects/trove-rubin-bridge/transport_boundary_review/transport-boundary-status.json')
+          data = json.loads(p.read_text())
+          assert data['status'] == 'BLOCKED_CURRENT_TRANSPORT_SURFACE'
+          assert data['versions']['antares-client'] == '1.14.0'
+          assert data['versions']['tom-alertstreams'] == '1.2.1'
+          observed = data['observed']
+          assert observed['trigger_alert_explicitly_exposed_by_stream_return'] is False
+          assert observed['kafka_partition_exposed_to_application'] is False
+          assert observed['kafka_offset_exposed_to_application'] is False
+          assert observed['tom_wrapper_commits_after_success'] is False
+          assert observed['tom_handler_exception_escapes_listen'] is True
+          assert observed['tom_readstreams_has_listener_supervision'] is False
+          print(json.dumps(data, indent=2, sort_keys=True))
+          PY
