@@ -1,0 +1,147 @@
+name: Benchmark TROVE Rubin evidence storage
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: trove_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout bridge staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: project/trove-rubin-bridge
+          path: bridge
+          fetch-depth: 0
+      - name: Checkout TROVE main
+        uses: actions/checkout@v4
+        with:
+          repository: astro-trove/trove
+          ref: main
+          path: trove
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install reproducible TROVE environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('trove/requirements.txt').read_text().splitlines()
+          pin = 'tom-nonlocalizedevents @ git+https://github.com/TOMToolkit/tom_nonlocalizedevents.git@d877e0281c6c826d753b19442a7452dbaafb00c5'
+          Path('/tmp/trove-repro-requirements.txt').write_text('\n'.join(pin if line.startswith('tom-nonlocalizedevents @') else line for line in src) + '\n')
+          PY
+          python -m pip install --upgrade pip wheel setuptools
+          python -m pip install -r /tmp/trove-repro-requirements.txt
+          python <<'PY'
+          import os, site
+          patches = [
+              (('tom_targets','migrations','0025_auto_20250206_2017.py'), "from django.db import migrations\nclass Migration(migrations.Migration):\n    dependencies=[('tom_targets','0024_basetarget_permissions')]\n    operations=[]\n"),
+              (('tom_nonlocalizedevents','migrations','0016_externalcoincidence_alter_eventsequence_options_and_more.py'), "from django.db import migrations\nclass Migration(migrations.Migration):\n    dependencies=[('tom_nonlocalizedevents','0015_eventsequence_and_more')]\n    operations=[]\n"),
+              (('tom_nonlocalizedevents','migrations','0017_alter_eventsequence_external_coincidence_and_more.py'), "from django.db import migrations\nclass Migration(migrations.Migration):\n    dependencies=[('tom_nonlocalizedevents','0016_externalcoincidence_alter_eventsequence_options_and_more')]\n    operations=[]\n"),
+          ]
+          for parts, content in patches:
+              for sp in site.getsitepackages():
+                  path=os.path.join(sp,*parts)
+                  if os.path.exists(path):
+                      open(path,'w').write(content)
+                      print('patched', path)
+                      break
+          PY
+      - name: Apply exact hardened v3 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATCH="$GITHUB_WORKSPACE/bridge/projects/trove-rubin-bridge/upstream_patch_v3/0001-rubin-split-evidence-boundary.patch"
+          echo "patch_sha256=$(sha256sum "$PATCH" | awk '{print $1}')"
+          test "$(sha256sum "$PATCH" | awk '{print $1}')" = "3cdb9fae43b02a0e3c072226a0fd7e731e937ef3b59c317ea6eb08718ddb9066"
+          git -C trove apply --check "$PATCH"
+          git -C trove apply "$PATCH"
+          cat > trove/trove_tom/settings_local.py <<'EOF'
+          ALLOWED_HOST = 'localhost'
+          ATLAS_API_KEY = ''
+          DEBUG = True
+          FORCE_SCRIPT_NAME = ''
+          GCN_CLIENT_ID = ''
+          GCN_CLIENT_SECRET = ''
+          HOPSKOTCH_GROUP_ID = 'ci-test'
+          LASAIR_TOKEN = ''
+          POSTGRES_DB = ''
+          POSTGRES_HOST = ''
+          POSTGRES_PASSWORD = ''
+          POSTGRES_PORT = 5432
+          POSTGRES_USER = ''
+          POSTGRES_DB2 = ''
+          POSTGRES_HOST2 = ''
+          POSTGRES_PASSWORD2 = ''
+          POSTGRES_PORT2 = 5432
+          POSTGRES_USER2 = ''
+          SAVE_TEST_ALERTS = False
+          SCIMMA_AUTH_USERNAME = ''
+          SCIMMA_AUTH_PASSWORD = ''
+          SECRET_KEY = 'ci-benchmark-secret-key-not-for-production'
+          NLE_LINKS = []
+          TARGET_LINKS = []
+          SLACK_TOKENS_GW = []
+          SLACK_TOKEN_EP = ''
+          SLACK_TOKEN_TNS = ''
+          TNS_API_KEY = ''
+          TREASUREMAP_API_KEY = ''
+          ZTF_INFO = {'email_server':'', 'email_password':'', 'email_address':'', 'user_address':'', 'user_password':''}
+          EOF
+      - name: Migrate PostgreSQL and run benchmark
+        shell: bash
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h 127.0.0.1 -U postgres -d postgres -c 'DROP DATABASE IF EXISTS catalogs_ci;'
+          psql -h 127.0.0.1 -U postgres -d postgres -c 'CREATE DATABASE catalogs_ci;'
+          export POSTGRES_DB='trove_ci'
+          export POSTGRES_HOST='127.0.0.1'
+          export POSTGRES_PASSWORD='postgres'
+          export POSTGRES_PORT='5432'
+          export POSTGRES_USER='postgres'
+          export POSTGRES_DB2='catalogs_ci'
+          export POSTGRES_HOST2='127.0.0.1'
+          export POSTGRES_PASSWORD2='postgres'
+          export POSTGRES_PORT2='5432'
+          export POSTGRES_USER2='postgres'
+          export SKIP_DUSTMAP=1
+          (cd trove && python manage.py migrate --run-syncdb --noinput)
+          cp bridge/projects/trove-rubin-bridge/upstream_patch_v3/storage_benchmark.py trove/storage_benchmark.py
+          (cd trove && python storage_benchmark.py) > /tmp/storage-benchmark.json
+          python -m json.tool /tmp/storage-benchmark.json >/dev/null
+          cat /tmp/storage-benchmark.json
+      - name: Publish benchmark artifact to staging branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C bridge fetch origin project/trove-rubin-bridge
+          git -C bridge reset --hard origin/project/trove-rubin-bridge
+          cp /tmp/storage-benchmark.json bridge/projects/trove-rubin-bridge/upstream_patch_v3/storage-benchmark.json
+          git -C bridge config user.name 'github-actions[bot]'
+          git -C bridge config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C bridge add projects/trove-rubin-bridge/upstream_patch_v3/storage-benchmark.json
+          git -C bridge commit -m 'Record PostgreSQL storage benchmark for hardened v3'
+          git -C bridge push origin HEAD:project/trove-rubin-bridge
