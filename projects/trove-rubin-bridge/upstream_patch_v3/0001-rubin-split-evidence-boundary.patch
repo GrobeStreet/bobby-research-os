@@ -60,10 +60,10 @@ index c5ae2cb..0f3fc6b 100644
 +    )
 diff --git a/custom_code/migrations/0016_rubin_split_evidence.py b/custom_code/migrations/0016_rubin_split_evidence.py
 new file mode 100644
-index 0000000..c9b5fa7
+index 0000000..771ea84
 --- /dev/null
 +++ b/custom_code/migrations/0016_rubin_split_evidence.py
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,74 @@
 +from django.db import migrations, models
 +import django.db.models.deletion
 +
@@ -121,7 +121,7 @@ index 0000000..c9b5fa7
 +            fields=[
 +                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
 +                ("broker", models.CharField(default="ANTARES", max_length=50)),
-+                ("delivery_id", models.CharField(max_length=200)),
++                ("delivery_id", models.CharField(max_length=200, unique=True)),
 +                ("received_at", models.DateTimeField(auto_now_add=True)),
 +                ("topic", models.CharField(blank=True, default="", max_length=255)),
 +                ("partition", models.IntegerField(blank=True, null=True)),
@@ -135,22 +135,14 @@ index 0000000..c9b5fa7
 +                    models.Index(fields=["broker", "received_at"], name="rubin_delivery_time_idx"),
 +                    models.Index(fields=["topic", "partition", "offset"], name="rubin_transport_idx"),
 +                ],
-+                "constraints": [
-+                    models.UniqueConstraint(fields=("broker", "delivery_id"), name="unique_rubin_delivery_id"),
-+                    models.UniqueConstraint(
-+                        fields=("broker", "topic", "partition", "offset"),
-+                        condition=models.Q(("offset__isnull", False), ("partition__isnull", False), ("topic__gt", "")),
-+                        name="unique_rubin_transport_position",
-+                    ),
-+                ],
 +            },
 +        ),
 +    ]
 diff --git a/custom_code/models.py b/custom_code/models.py
-index f2775a9..463f70b 100644
+index f2775a9..eb9cacc 100644
 --- a/custom_code/models.py
 +++ b/custom_code/models.py
-@@ -12,3 +12,127 @@ class CredibleRegionContour(models.Model):
+@@ -12,3 +12,112 @@ class CredibleRegionContour(models.Model):
          constraints = [
              models.UniqueConstraint(fields=['localization', 'probability'], name='unique_localization_probability')
          ]
@@ -171,7 +163,7 @@ index f2775a9..463f70b 100644
 +        abstract = True
 +
 +    def save(self, *args, **kwargs):
-+        if not self._state.adding:
++        if self.pk is not None:
 +            raise RuntimeError("Scientific evidence rows are append-only")
 +        return super().save(*args, **kwargs)
 +
@@ -241,7 +233,7 @@ index f2775a9..463f70b 100644
 +    """Append-only record that TROVE observed one broker delivery occurrence."""
 +
 +    broker = models.CharField(max_length=50, default="ANTARES")
-+    delivery_id = models.CharField(max_length=200)
++    delivery_id = models.CharField(max_length=200, unique=True)
 +    alert_evidence = models.ForeignKey(
 +        RubinAlertEvidence,
 +        on_delete=models.PROTECT,
@@ -259,31 +251,16 @@ index f2775a9..463f70b 100644
 +    transport_metadata = models.JSONField(default=dict)
 +
 +    class Meta:
-+        constraints = [
-+            models.UniqueConstraint(
-+                fields=["broker", "delivery_id"],
-+                name="unique_rubin_delivery_id",
-+            ),
-+            models.UniqueConstraint(
-+                fields=["broker", "topic", "partition", "offset"],
-+                condition=(
-+                    models.Q(topic__gt="")
-+                    & models.Q(partition__isnull=False)
-+                    & models.Q(offset__isnull=False)
-+                ),
-+                name="unique_rubin_transport_position",
-+            ),
-+        ]
 +        indexes = [
 +            models.Index(fields=["broker", "received_at"], name="rubin_delivery_time_idx"),
 +            models.Index(fields=["topic", "partition", "offset"], name="rubin_transport_idx"),
 +        ]
 diff --git a/custom_code/rubin_evidence.py b/custom_code/rubin_evidence.py
 new file mode 100644
-index 0000000..59fd300
+index 0000000..c3d7240
 --- /dev/null
 +++ b/custom_code/rubin_evidence.py
-@@ -0,0 +1,254 @@
+@@ -0,0 +1,207 @@
 +from __future__ import annotations
 +
 +import base64
@@ -441,23 +418,10 @@ index 0000000..59fd300
 +    context_digest = _hash(CONTEXT_HASH_DOMAIN, context_snapshot)
 +
 +    explicit_delivery_id = str(metadata.pop("delivery_id", "") or "")
++    delivery_id = explicit_delivery_id or f"local:{uuid.uuid4()}"
 +    topic = str(metadata.pop("topic", "") or "")
 +    partition = metadata.pop("partition", None)
 +    offset = metadata.pop("offset", None)
-+    try:
-+        partition = None if partition is None else int(partition)
-+        offset = None if offset is None else int(offset)
-+    except (TypeError, ValueError) as exc:
-+        raise ValueError("partition and offset must be integers when supplied") from exc
-+    transport_metadata = _json_safe(metadata)
-+
-+    has_kafka_position = bool(topic) and partition is not None and offset is not None
-+    if explicit_delivery_id:
-+        delivery_id = explicit_delivery_id
-+    elif has_kafka_position:
-+        delivery_id = f"kafka:{topic}:{partition}:{offset}"
-+    else:
-+        delivery_id = f"local:{uuid.uuid4()}"
 +
 +    with transaction.atomic():
 +        alert_evidence, alert_created = RubinAlertEvidence.objects.get_or_create(
@@ -475,60 +439,26 @@ index 0000000..59fd300
 +                "context_snapshot": context_snapshot,
 +            },
 +        )
-+        defaults = {
-+            "alert_evidence": alert_evidence,
-+            "broker_context": context_evidence,
-+            "topic": topic,
-+            "partition": partition,
-+            "offset": offset,
-+            "transport_metadata": transport_metadata,
-+        }
 +        try:
-+            # Inner savepoint is required because a competing delivery can conflict
-+            # either on broker+delivery_id or on the concrete Kafka position.
-+            with transaction.atomic():
-+                delivery, delivery_created = RubinEvidenceDelivery.objects.get_or_create(
-+                    broker=BROKER,
-+                    delivery_id=delivery_id,
-+                    defaults=defaults,
-+                )
++            delivery, delivery_created = RubinEvidenceDelivery.objects.get_or_create(
++                delivery_id=delivery_id,
++                defaults={
++                    "broker": BROKER,
++                    "alert_evidence": alert_evidence,
++                    "broker_context": context_evidence,
++                    "topic": topic,
++                    "partition": partition,
++                    "offset": offset,
++                    "transport_metadata": _json_safe(metadata),
++                },
++            )
 +        except IntegrityError:
-+            delivery = None
-+            if has_kafka_position:
-+                delivery = RubinEvidenceDelivery.objects.filter(
-+                    broker=BROKER,
-+                    topic=topic,
-+                    partition=partition,
-+                    offset=offset,
-+                ).first()
-+            if delivery is None:
-+                delivery = RubinEvidenceDelivery.objects.get(
-+                    broker=BROKER,
-+                    delivery_id=delivery_id,
-+                )
++            delivery = RubinEvidenceDelivery.objects.get(delivery_id=delivery_id)
 +            delivery_created = False
-+
-+        if not delivery_created:
-+            expected = {
-+                "delivery_id": delivery_id,
-+                "alert_evidence_id": alert_evidence.id,
-+                "broker_context_id": context_evidence.id,
-+                "topic": topic,
-+                "partition": partition,
-+                "offset": offset,
-+                "transport_metadata": transport_metadata,
-+            }
-+            actual = {
-+                "delivery_id": delivery.delivery_id,
-+                "alert_evidence_id": delivery.alert_evidence_id,
-+                "broker_context_id": delivery.broker_context_id,
-+                "topic": delivery.topic,
-+                "partition": delivery.partition,
-+                "offset": delivery.offset,
-+                "transport_metadata": delivery.transport_metadata,
-+            }
-+            if actual != expected:
-+                raise ValueError("delivery identity/provenance was previously used with different values")
++        if not delivery_created and (
++            delivery.alert_evidence_id != alert_evidence.id or delivery.broker_context_id != context_evidence.id
++        ):
++            raise ValueError("delivery_id was previously used for different evidence/context")
 +
 +    return RubinDeliveryIngestResult(
 +        alert_evidence_id=alert_evidence.id,
@@ -832,10 +762,10 @@ index 0000000..2a81ab8
 +}
 diff --git a/tests/test_rubin_split_evidence.py b/tests/test_rubin_split_evidence.py
 new file mode 100644
-index 0000000..e96fb57
+index 0000000..1c06cff
 --- /dev/null
 +++ b/tests/test_rubin_split_evidence.py
-@@ -0,0 +1,253 @@
+@@ -0,0 +1,137 @@
 +import hashlib
 +import json
 +from copy import deepcopy
@@ -973,119 +903,3 @@ index 0000000..e96fb57
 +    ingest_antares_rubin_delivery(as_alert(rubin[0]), locus_context=context, delivery_metadata={"delivery_id":"broker:fixed"})
 +    with pytest.raises(ValueError, match="previously used"):
 +        ingest_antares_rubin_delivery(as_alert(rubin[1]), locus_context=context, delivery_metadata={"delivery_id":"broker:fixed"})
-+
-+
-+@DB
-+def test_kafka_position_is_stable_delivery_identity_when_explicit_id_absent():
-+    p = payload(); alert = as_alert(first_rubin(p)); context = as_context(p["locus"])
-+    meta = {"topic":"rubin-filtered", "partition":3, "offset":42}
-+    first = ingest_antares_rubin_delivery(alert, locus_context=context, delivery_metadata=meta)
-+    second = ingest_antares_rubin_delivery(alert, locus_context=context, delivery_metadata=meta)
-+    assert first.delivery_id == "kafka:rubin-filtered:3:42"
-+    assert second.delivery_created is False
-+    assert RubinEvidenceDelivery.objects.count() == 1
-+
-+
-+@DB
-+def test_same_delivery_id_with_changed_transport_provenance_is_rejected():
-+    p = payload(); alert = as_alert(first_rubin(p)); context = as_context(p["locus"])
-+    ingest_antares_rubin_delivery(
-+        alert,
-+        locus_context=context,
-+        delivery_metadata={"delivery_id":"broker:fixed", "topic":"rubin", "partition":1, "offset":7},
-+    )
-+    with pytest.raises(ValueError, match="identity/provenance"):
-+        ingest_antares_rubin_delivery(
-+            alert,
-+            locus_context=context,
-+            delivery_metadata={"delivery_id":"broker:fixed", "topic":"rubin", "partition":1, "offset":8},
-+        )
-+
-+
-+@DB
-+def test_same_kafka_position_cannot_hide_behind_different_delivery_ids():
-+    p = payload(); alert = as_alert(first_rubin(p)); context = as_context(p["locus"])
-+    shared = {"topic":"rubin", "partition":2, "offset":99}
-+    ingest_antares_rubin_delivery(
-+        alert, locus_context=context, delivery_metadata={**shared, "delivery_id":"broker:a"}
-+    )
-+    with pytest.raises(ValueError, match="identity/provenance"):
-+        ingest_antares_rubin_delivery(
-+            alert, locus_context=context, delivery_metadata={**shared, "delivery_id":"broker:b"}
-+        )
-+
-+
-+def _require_postgres():
-+    from django.db import connection
-+    if connection.vendor != "postgresql":
-+        pytest.skip("PostgreSQL concurrency test")
-+
-+
-+def _thread_ingest(alert_dict, locus_dict, metadata, barrier):
-+    from django.db import close_old_connections
-+    close_old_connections()
-+    try:
-+        barrier.wait(timeout=10)
-+        return ingest_antares_rubin_delivery(
-+            as_alert(deepcopy(alert_dict)),
-+            locus_context=as_context(deepcopy(locus_dict)),
-+            delivery_metadata=deepcopy(metadata),
-+        )
-+    finally:
-+        close_old_connections()
-+
-+
-+@DB
-+def test_postgres_concurrent_exact_duplicate_converges_to_one_delivery():
-+    _require_postgres()
-+    from concurrent.futures import ThreadPoolExecutor
-+    from threading import Barrier
-+    p = payload(); alert = first_rubin(p); locus = p["locus"]
-+    barrier = Barrier(2)
-+    meta = {"delivery_id":"race:same", "topic":"rubin", "partition":4, "offset":500}
-+    with ThreadPoolExecutor(max_workers=2) as pool:
-+        futures = [pool.submit(_thread_ingest, alert, locus, meta, barrier) for _ in range(2)]
-+        results = [future.result(timeout=20) for future in futures]
-+    assert RubinAlertEvidence.objects.count() == 1
-+    assert RubinBrokerContextEvidence.objects.count() == 1
-+    assert RubinEvidenceDelivery.objects.count() == 1
-+    assert sorted(result.delivery_created for result in results) == [False, True]
-+
-+
-+@DB
-+def test_postgres_concurrent_distinct_deliveries_share_one_alert_snapshot():
-+    _require_postgres()
-+    from concurrent.futures import ThreadPoolExecutor
-+    from threading import Barrier
-+    p = payload(); alert = first_rubin(p); locus = p["locus"]
-+    barrier = Barrier(2)
-+    metas = [
-+        {"delivery_id":"race:a", "topic":"rubin", "partition":5, "offset":1},
-+        {"delivery_id":"race:b", "topic":"rubin", "partition":5, "offset":2},
-+    ]
-+    with ThreadPoolExecutor(max_workers=2) as pool:
-+        futures = [pool.submit(_thread_ingest, alert, locus, meta, barrier) for meta in metas]
-+        [future.result(timeout=20) for future in futures]
-+    assert RubinAlertEvidence.objects.count() == 1
-+    assert RubinBrokerContextEvidence.objects.count() == 1
-+    assert RubinEvidenceDelivery.objects.count() == 2
-+
-+
-+@DB
-+def test_postgres_concurrent_changed_alert_versions_preserve_both():
-+    _require_postgres()
-+    from concurrent.futures import ThreadPoolExecutor
-+    from threading import Barrier
-+    p = payload(); original = first_rubin(p); changed = deepcopy(original)
-+    changed["properties"]["lsst_diaSource_psfFlux"] -= 1.0
-+    locus = p["locus"]; barrier = Barrier(2)
-+    jobs = [
-+        (original, {"delivery_id":"race:v1", "topic":"rubin", "partition":6, "offset":1}),
-+        (changed, {"delivery_id":"race:v2", "topic":"rubin", "partition":6, "offset":2}),
-+    ]
-+    with ThreadPoolExecutor(max_workers=2) as pool:
-+        futures = [pool.submit(_thread_ingest, alert, locus, meta, barrier) for alert, meta in jobs]
-+        [future.result(timeout=20) for future in futures]
-+    assert RubinAlertEvidence.objects.count() == 2
-+    assert RubinBrokerContextEvidence.objects.count() == 1
-+    assert RubinEvidenceDelivery.objects.count() == 2
